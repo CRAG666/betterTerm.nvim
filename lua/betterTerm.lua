@@ -27,10 +27,6 @@ local function getIndex(num)
   return string.format(options.prefix .. "%d", num)
 end
 
-local function getTermInfo(num)
-  return terms[getIndex(num)]
-end
-
 --- Save characteristic of new term
 ---@param num number of terminal
 local function newTermcConfig(num)
@@ -47,9 +43,8 @@ local function newTermcConfig(num)
 ---@param num number
 ---@param wind_id number
 local function showTerm(num, wind_id)
-  local current_term = getTermInfo(num)
-  current_term.terminal_opened_win_id = wind_id
-  vim.cmd(options.buffer_pos .. "| buffer " .. current_term.bufname)
+  terms[index].terminal_opened_win_id = wind_id
+  vim.cmd(options.buffer_pos .. "| buffer " .. terms[index].bufname)
   vim.cmd("startinsert")
 end
 
@@ -57,18 +52,18 @@ end
 ---@param num number
 ---@param wind_id number
 local function newTerm(num, wind_id)
-  local current_term = getTermInfo(num)
-  current_term.terminal_opened_win_id = wind_id
+  local index = getIndex(num)
+  terms[index].terminal_opened_win_id = wind_id
   vim.cmd(options.buffer_pos .. "| term")
   vim.bo.ft = "better_term"
-  vim.cmd("file " .. current_term.bufname)
+  vim.cmd("file " .. terms[index].bufname)
   vim.wo.relativenumber = false
   vim.o.number = false
   vim.bo.buflisted = false
   vim.wo.foldcolumn = '0'
   vim.bo.readonly = true
-  current_term.bufid = vim.api.nvim_buf_get_number(0)
-  current_term.jobid = vim.b.terminal_job_id
+  terms[index].bufid = vim.api.nvim_buf_get_number(0)
+  terms[index].jobid = vim.b.terminal_job_id
   vim.cmd("startinsert")
 end
 
@@ -96,18 +91,18 @@ end
 ---@param num number
 function M.open(num)
   num = validateTerm(num)
-  local current_term = getTermInfo(num)
-  local buf_exist = vim.api.nvim_buf_is_valid(current_term.bufid)
+  local index = getIndex(num)
+  local buf_exist = vim.api.nvim_buf_is_valid(terms[index].bufid)
   local current_wind_id = vim.api.nvim_get_current_win()
   if buf_exist then
-    local bufinfo = vim.fn.getbufinfo(current_term.bufid)[1]
+    local bufinfo = vim.fn.getbufinfo(terms[index].bufid)[1]
     if bufinfo.hidden == 1 then
       hideLastTerm()
       showTerm(num, current_wind_id)
     else
       vim.fn.win_gotoid(bufinfo.windows[1])
       vim.cmd(":hide")
-      if current_wind_id ~= current_term.terminal_opened_win_id and current_wind_id ~= bufinfo.windows[1] then
+      if current_wind_id ~= terms[index].terminal_opened_win_id and current_wind_id ~= bufinfo.windows[1] then
         vim.fn.win_gotoid(current_wind_id)
         hideLastTerm()
         showTerm(num, current_wind_id)
@@ -128,18 +123,18 @@ function M.send(cmd, num, interrupt)
     return
   end
   interrupt = interrupt or false
-  local current_term = getTermInfo(num)
-  local buf_exist = vim.api.nvim_buf_is_valid(current_term.bufid)
+  local index = getIndex(num)
+  local buf_exist = vim.api.nvim_buf_is_valid(terms[index].bufid)
   if buf_exist then
     if interrupt then
       M.open(num)
-      vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes('<C-c> <C-l>', true, true, true))
+      vim.api.nvim_chan_send(terms[index].jobid, vim.api.nvim_replace_termcodes('<C-c> <C-l>', true, true, true))
       vim.loop.sleep(100)
     end
-    vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
+    vim.api.nvim_chan_send(terms[index].jobid, cmd .. "\n")
   else
     M.open(num)
-    vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
+    vim.api.nvim_chan_send(terms[index].jobid, cmd .. "\n")
   end
 end
 
