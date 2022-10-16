@@ -43,6 +43,7 @@ local function newTermcConfig(num)
 ---@param num number
 ---@param wind_id number
 local function showTerm(num, wind_id)
+  local index = getIndex(num)
   terms[index].terminal_opened_win_id = wind_id
   vim.cmd(options.buffer_pos .. "| buffer " .. terms[index].bufname)
   vim.cmd("startinsert")
