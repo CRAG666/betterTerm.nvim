@@ -2,7 +2,8 @@
 
 <h4 align='center'>🔥 The improved vscode terminal for Neovim written in pure lua 🔥</h4>
 
-![Code Runner](https://i.ibb.co/1njTRTL/ezgif-com-video-to-gif.gif)
+https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-9e85-2b2cbe5287f6.mp4
+
 
 # Introduction
 I like the concept of vscode terminal, if you are like me, this complement will be the best of your options.
