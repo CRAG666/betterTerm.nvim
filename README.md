@@ -1,6 +1,3 @@
-# betterTerm.nvim
-I like the concept of vscode terminal, if you are like me, this complement will be the best of your options.
-
 <h1 align='center'>Better Term</h1>
 
 <h4 align='center'>🔥 The improved vscode terminal for Neovim written in pure lua 🔥</h4>
