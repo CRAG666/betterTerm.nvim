@@ -12,6 +12,9 @@ Normally I like to stay inside the editor, if I can make coffee in the editor, b
 By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck.
 
 
+https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
+
+
 ### Requirements
 
 - Neovim (>= 0.8)
