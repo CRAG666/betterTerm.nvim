@@ -1,0 +1,28 @@
+M.setup({user_options})                                                *M.setup*
+     Set user options
+
+    Parameters: ~
+        {user_options}  (table)
+
+
+M.open({num})                                                           *M.open*
+     Show or hide Term
+
+    Parameters: ~
+        {num}  (number)
+
+
+M.send({cmd}, {num}, {interrupt})                                       *M.send*
+     Send command to Term
+
+    Parameters: ~
+        {cmd}        (string)
+        {num}        (number)
+        {interrupt}  (boolean)
+
+
+M.select()                                                            *M.select*
+     Select term and show or hide
+
+
+vim:tw=78:ts=8:noet:ft=help:norl:
