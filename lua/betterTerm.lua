@@ -81,12 +81,10 @@ local function hideLastTerm()
 end
 
 local function validateTerm(num)
-  num = num or 0
+  num = num or 1
   if vim.tbl_isempty(terms) then
     newTermcConfig(num)
     return num
-  elseif num == 0 then
-    return 1
   elseif not terms[getIndex(num)] then
     newTermcConfig(num)
     return num
