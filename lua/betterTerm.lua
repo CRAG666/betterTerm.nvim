@@ -68,10 +68,21 @@ local function newTerm(num, wind_id)
   vim.cmd("startinsert")
 end
 
---- Hide current Term
-local function hideLastTerm()
+local function getLastTerm()
   local name = vim.fn.bufname("%")
   if name:find('^' .. options.prefix) ~= nil then
+    local index = name:gsub(options.prefix, "")
+    return tonumber(index)
+  end
+  return 0
+end
+
+--- Hide current Term
+local function hideLastTerm(num)
+  local last = getLastTerm()
+  if last == 0 then
+    return
+  elseif last ~= num then
     vim.cmd(":hide")
   end
 end
@@ -98,19 +109,19 @@ function M.open(num)
   if buf_exist then
     local bufinfo = vim.fn.getbufinfo(terms[index].bufid)[1]
     if bufinfo.hidden == 1 then
-      hideLastTerm()
+      hideLastTerm(num)
       showTerm(num, current_wind_id)
     else
       vim.fn.win_gotoid(bufinfo.windows[1])
       vim.cmd(":hide")
       if current_wind_id ~= terms[index].terminal_opened_win_id and current_wind_id ~= bufinfo.windows[1] then
         vim.fn.win_gotoid(current_wind_id)
-        hideLastTerm()
+        hideLastTerm(num)
         showTerm(num, current_wind_id)
       end
     end
   else
-    hideLastTerm()
+    hideLastTerm(num)
     newTerm(num, current_wind_id)
   end
 end
