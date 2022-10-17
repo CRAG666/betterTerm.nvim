@@ -50,9 +50,9 @@ local function insert_new_term_config(bufname)
 ---@param wind_id number
 local function show_term(key_term, wind_id)
   terms[key_term].before_wind_id = wind_id
-  vim.cmd(options.buffer_pos .. "| buffer " .. terms[key_term].bufname)
+  vim.cmd(options.buffer_pos .. "| buffer " .. terms[key_term].bufid)
   vim.wo.scl='no'
-  terms[key_term].winid = vim.fn.win_getid()
+  terms[key_term].winid = vim.api.nvim_get_current_win()
   vim.cmd("startinsert")
 end
 
@@ -72,7 +72,7 @@ local function create_new_term(key_term, wind_id)
   vim.wo.scl='no'
   terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
   terms[key_term].jobid = vim.b.terminal_job_id
-  terms[key_term].winid = vim.fn.win_getid()
+  terms[key_term].winid = vim.api.nvim_get_current_win()
   vim.cmd("startinsert")
 end
 
