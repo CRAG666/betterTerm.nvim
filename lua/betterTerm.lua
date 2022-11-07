@@ -155,9 +155,9 @@ function M.send(cmd, num, interrupt)
   local key_term = get_term_key(num)
   local current_term = terms[key_term];
   if current_term == nil then
-    M.open(num)
+    M.open(key_term)
+    vim.loop.sleep(1000)
     current_term = terms[key_term]
-    vim.loop.sleep(100)
   end
   interrupt = interrupt or false
   local buf_exist = vim.api.nvim_buf_is_valid(current_term.bufid)
