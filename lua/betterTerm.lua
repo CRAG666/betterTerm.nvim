@@ -155,7 +155,7 @@ function M.send(cmd, num, interrupt)
   local key_term = get_term_key(num)
   local current_term = terms[key_term];
   if current_term == nil then
-    open(key_term)
+    M.open(key_term)
     current_term = terms[key_term]
   end
   interrupt = interrupt or false
