@@ -58,6 +58,27 @@ require('betterTerm').setup()
 - `:lua require("config.betterTerm").send(cmd, num, interrupt)` - Send a command to a specific terminal(cmd: command, num: terminal id, interrupt: close any command that is currently in execution).
 - `:lua require("config.betterTerm").select()` -Select any terminal.Whether you want to show or hide(use: vim.ui.select as backend).
 
+### Recommended keymaps
+
+No keymaps is assigned by default.It is better that you do it yourself, I will show my preferred keymaps:
+```lua
+local betterTerm = require('betterTerm')
+-- toggle firts term
+vim.keymap.set({"n", "t"}, "<C-ñ>", betterTerm.open, { desc = "Open terminal"})
+-- Select term focus
+vim.keymap.set({"n", "t"}, "<leader>tt", betterTerm.select, { desc = "Select terminal"})
+-- Create new term
+local current = 2
+vim.keymap.set(
+    {"n", "t"}, "<leader>tn",
+    function()
+        betterTerm.open(current)
+        current = current + 1
+    end,
+    { desc = "New terminal"}
+)
+```
+
 ### Options
 
 - `prefix`: It is used to create the names and a autocmd(default: `Term_`).
