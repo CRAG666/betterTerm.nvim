@@ -155,7 +155,7 @@ function M.send(cmd, num, interrupt)
   local key_term = get_term_key(num)
   local current_term = terms[key_term];
   if current_term == nil then
-    M.open(key_term)
+    M.open(num)
     current_term = terms[key_term]
     vim.loop.sleep(100)
   end
