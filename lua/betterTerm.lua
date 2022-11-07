@@ -156,7 +156,7 @@ function M.send(cmd, num, interrupt)
   local current_term = terms[key_term];
   if current_term == nil then
     M.open(key_term)
-    vim.loop.sleep(60)
+    vim.loop.sleep(80)
     current_term = terms[key_term]
   end
   interrupt = interrupt or false
