@@ -151,20 +151,23 @@ end
 ---@param num number
 ---@param interrupt boolean
 function M.send(cmd, num, interrupt)
-  if vim.tbl_isempty(terms) or (num == nil) then
-    return
+  num = num or 1
+  local key_term = get_term_key(num)
+  local current_term = terms[key_term];
+  if current_term == nil then
+    open(key_term)
+    current_term = terms[key_term]
   end
   interrupt = interrupt or false
-  local key_term = get_term_key(num)
-  local buf_exist = vim.api.nvim_buf_is_valid(terms[key_term].bufid)
+  local buf_exist = vim.api.nvim_buf_is_valid(current_term.bufid)
   if buf_exist then
     if interrupt then
-      vim.api.nvim_chan_send(terms[key_term].jobid, vim.api.nvim_replace_termcodes('<C-c> <C-l>', true, true, true))
+      vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes('<C-c> <C-l>', true, true, true))
       vim.loop.sleep(100)
     end
-    vim.api.nvim_chan_send(terms[key_term].jobid, cmd .. "\n")
+    vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
   else
-    vim.api.nvim_chan_send(terms[key_term].jobid, cmd .. "\n")
+    vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
   end
 end
 
