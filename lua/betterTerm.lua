@@ -2,7 +2,7 @@ local terms = {}
 
 local options = {
   prefix = "Term_",
-  position = "",
+  position = "bot",
   size = 25,
   buffer_pos = ""
 }
@@ -13,7 +13,7 @@ local M = {}
 ---@param user_options table
 M.setup = function(user_options)
   options = vim.tbl_deep_extend("force", options, user_options or {})
-  options.buffer_pos = string.format("%d%s new", options.size, options.position)
+  options.buffer_pos = string.format("%s %d new", options.position, options.size)
   vim.api.nvim_create_autocmd('BufWipeout', {
     pattern = options.prefix .. '*',
     callback = function()
@@ -43,7 +43,7 @@ local function insert_new_term_config(bufname)
     before_wind_id = -1,
   }
   return bufname
- end
+end
 
 --- Show terminal for id
 ---@param key_term string
@@ -51,7 +51,7 @@ local function insert_new_term_config(bufname)
 local function show_term(key_term, wind_id)
   terms[key_term].before_wind_id = wind_id
   vim.cmd(options.buffer_pos .. "| buffer " .. terms[key_term].bufid)
-  vim.wo.scl='no'
+  vim.wo.scl = 'no'
   terms[key_term].winid = vim.api.nvim_get_current_win()
   vim.cmd("startinsert")
 end
@@ -69,7 +69,7 @@ local function create_new_term(key_term, wind_id)
   vim.bo.buflisted = false
   vim.wo.foldcolumn = '0'
   vim.bo.readonly = true
-  vim.wo.scl='no'
+  vim.wo.scl = 'no'
   terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
   terms[key_term].jobid = vim.b.terminal_job_id
   terms[key_term].winid = vim.api.nvim_get_current_win()
@@ -110,7 +110,7 @@ local function create_term_key(index)
   if type(index) == "number" then
     index = get_term_key(index) or default
   else
-  index = index or default
+    index = index or default
   end
   if vim.tbl_isempty(terms) then
     return insert_new_term_config(index)
