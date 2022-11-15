@@ -3,7 +3,7 @@ local terms = {}
 local options = {
   prefix = "Term_",
   position = "bot",
-  size = 25,
+  size = 18,
   buffer_pos = ""
 }
 

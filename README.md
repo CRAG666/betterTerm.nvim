@@ -82,8 +82,8 @@ vim.keymap.set(
 ### Options
 
 - `prefix`: It is used to create the names and a autocmd(default: `Term_`).
-- `position`: Integrated terminal position(for option :h windows, default: "")
-- `size`: Size of the terminal window (default: `25`)
+- `position`: Integrated terminal position(for option `:h opening-window`, default: `bot`)
+- `size`: Size of the terminal window (default: `18`)
 
 ### Setup
 

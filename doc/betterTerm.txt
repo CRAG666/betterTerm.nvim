@@ -5,11 +5,7 @@ M.setup({user_options})                                                *M.setup*
         {user_options}  (table)
 
 
-M.open({num})                                                           *M.open*
-     Show or hide Term
-
-    Parameters: ~
-        {num}  (number)
+M.open()                                                                *M.open*
 
 
 M.send({cmd}, {num}, {interrupt})                                       *M.send*
