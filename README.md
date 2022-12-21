@@ -52,7 +52,7 @@ require('betterTerm').setup()
 ### Functions
 
 - `:lua require("config.betterTerm").open(num)` - Show or hide a specific terminal(num: terminal id).
-- `:lua require("config.betterTerm").send(cmd, num, interrupt)` - Send a command to a specific terminal(cmd: command, num: terminal id, interrupt: close any command that is currently in execution).
+- `:lua require("config.betterTerm").send(cmd, num, press)` - Send a command to a specific terminal(cmd: command, num: terminal id, press: Press clean and/or interrupt).
 - `:lua require("config.betterTerm").select()` -Select any terminal.Whether you want to show or hide(use: vim.ui.select as backend).
 
 ### Recommended keymaps
@@ -89,8 +89,8 @@ vim.keymap.set(
 -- this is a config example
 require('betterTerm').setup {
   prefix = "CRAG_",
-  position = "vsplit",
-  size = 45
+  position = "bot",
+  size = 25
 }
 ```
 
@@ -99,8 +99,8 @@ require('betterTerm').setup {
 ```lua
 require('betterTerm').setup {
   prefix = "Term_",
-  position = "",
-  size = 25
+  position = "bot",
+  size = 18
 }
 ```
 
@@ -110,7 +110,7 @@ require('betterTerm').setup {
 -- use the best keymap for you
 vim.keymap.set("n", "<leader>e", function()
   -- change 1 for other terminal id
-  require('betterTerm').send(require("code_runner.commands").get_filetype_command(), 1, true)
+  require('betterTerm').send(require("code_runner.commands").get_filetype_command(), 1, { clean: true, interrupt: true })
 end, { desc = "Excute File"})
 ```
 
