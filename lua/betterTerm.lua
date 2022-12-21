@@ -165,14 +165,14 @@ function M.send(cmd, num, press)
 	local buf_exist = vim.api.nvim_buf_is_valid(current_term.bufid)
 	if buf_exist then
 		if keys_press.interrupt or keys_press.clean then
-			local binds = "<C-c> <C-l>"
+			local binds = ""
 			if keys_press.interrupt then
-				binds = binds:gsub("<C-c> ", "")
+				binds = binds .. "<C-c> "
 			end
 			if keys_press.clean then
-				binds = binds:gsub("<C-l>", "")
+				binds = binds .. "<C-l> "
 			end
-			vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes("<C-c> <C-l>", true, true, true))
+			vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes(binds, true, true, true))
 			vim.loop.sleep(100)
 		end
 		vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
