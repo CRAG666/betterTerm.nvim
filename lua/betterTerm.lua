@@ -167,10 +167,10 @@ function M.send(cmd, num, press)
 		if keys_press.interrupt or keys_press.clean then
 			local binds = "<C-c> <C-l>"
 			if keys_press.interrupt then
-				binds = binds:gsub("C-c ", "")
+				binds = binds:gsub("<C-c> ", "")
 			end
 			if keys_press.clean then
-				binds = binds:gsub("C-l", "")
+				binds = binds:gsub("<C-l>", "")
 			end
 			vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes("<C-c> <C-l>", true, true, true))
 			vim.loop.sleep(100)
