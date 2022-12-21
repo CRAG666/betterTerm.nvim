@@ -8,13 +8,13 @@ M.setup({user_options})                                                *M.setup*
 M.open()                                                                *M.open*
 
 
-M.send({cmd}, {num}, {interrupt})                                       *M.send*
+M.send({cmd}, {num}, {press})                                           *M.send*
      Send command to Term
 
     Parameters: ~
-        {cmd}        (string)
-        {num}        (number)
-        {interrupt}  (boolean)
+        {cmd}    (string)
+        {num}    (number)
+        {press}  (table)
 
 
 M.select()                                                            *M.select*

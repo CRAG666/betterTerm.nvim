@@ -4,16 +4,14 @@
 
 https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-9e85-2b2cbe5287f6.mp4
 
-
 # Introduction
+
 I like the concept of vscode terminal, if you are like me, this complement will be the best of your options.
 Normally I like to stay inside the editor, if I can make coffee in the editor, believe me I would do it. So having an integrated terminal is the most sensible option, however I tried for a long time to use the integrated terminal of neovim and I didn't get used to write so much to do what I wanted, so I tried and tried plugins, which were not for me, I just wanted something simple and usable, without so many complications. Then as other times I started to program and from that Saturday afternoon came out this plugin. I hope you enjoy it and make all your PR's.
 
 By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck.
 
-
 https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
-
 
 ### Requirements
 
@@ -53,7 +51,6 @@ require('betterTerm').setup()
 
 ### Functions
 
-
 - `:lua require("config.betterTerm").open(num)` - Show or hide a specific terminal(num: terminal id).
 - `:lua require("config.betterTerm").send(cmd, num, interrupt)` - Send a command to a specific terminal(cmd: command, num: terminal id, interrupt: close any command that is currently in execution).
 - `:lua require("config.betterTerm").select()` -Select any terminal.Whether you want to show or hide(use: vim.ui.select as backend).
@@ -61,6 +58,7 @@ require('betterTerm').setup()
 ### Recommended keymaps
 
 No keymaps is assigned by default.It is better that you do it yourself, I will show my preferred keymaps:
+
 ```lua
 local betterTerm = require('betterTerm')
 -- toggle firts term
@@ -109,13 +107,13 @@ require('betterTerm').setup {
 # Integration with [code_runner.nvim](https://github.com/CRAG666/code_runner.nvim)
 
 ```lua
-
 -- use the best keymap for you
 vim.keymap.set("n", "<leader>e", function()
   -- change 1 for other terminal id
   require('betterTerm').send(require("code_runner.commands").get_filetype_command(), 1, true)
 end, { desc = "Excute File"})
 ```
+
 You can have Hotreload for any language if instead of assigning a `keymap`, create an `autocmd` for the language you want to add Hotreload
 
 # Contributing
