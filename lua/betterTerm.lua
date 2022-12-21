@@ -154,7 +154,7 @@ end
 ---@param press table
 function M.send(cmd, num, press)
 	num = num or 1
-	local keys_press = vim.tbl_deep_extend("force", { clean = false, interrupt = true }, press)
+	local keys_press = vim.tbl_deep_extend("force", { clean = false, interrupt = true }, press or {})
 	local key_term = get_term_key(num)
 	local current_term = terms[key_term]
 	if current_term == nil then
