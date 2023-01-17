@@ -150,8 +150,8 @@ end
 
 --- Send command to Term
 ---@param cmd string
----@param num number
----@param press table
+---@param num number?
+---@param press table?
 function M.send(cmd, num, press)
 	num = num or 1
 	local keys_press = vim.tbl_deep_extend("force", { clean = false, interrupt = true }, press or {})
