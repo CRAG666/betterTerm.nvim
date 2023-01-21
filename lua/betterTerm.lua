@@ -4,16 +4,24 @@ local options = {
 	prefix = "Term_",
 	position = "bot",
 	size = 18,
-	buffer_pos = "",
 }
 
 local M = {}
+
+local resize = ""
+local open_buf = ""
+local open_buf_new = ""
 
 --- Set user options
 ---@param user_options table
 M.setup = function(user_options)
 	options = vim.tbl_deep_extend("force", options, user_options or {})
-	options.buffer_pos = string.format("%s %d new", options.position, options.size)
+	resize = "resize " .. options.size
+  if options.position:find("vert", 1, true) == 1 then
+    resize = "vertical " .. resize
+  end
+	open_buf = options.position .. " sb "
+	open_buf_new = options.position .. " new "
 	vim.api.nvim_create_autocmd("BufWipeout", {
 		pattern = options.prefix .. "*",
 		callback = function()
@@ -52,7 +60,7 @@ end
 ---@param wind_id number
 local function show_term(key_term, wind_id)
 	terms[key_term].before_wind_id = wind_id
-	vim.cmd(options.buffer_pos .. "| buffer " .. terms[key_term].bufid)
+	vim.cmd(open_buf .. terms[key_term].bufid .. " | " .. resize)
 	vim.wo.scl = "no"
 	terms[key_term].winid = vim.api.nvim_get_current_win()
 	vim.cmd("startinsert")
@@ -63,7 +71,8 @@ end
 ---@param wind_id number
 local function create_new_term(key_term, wind_id)
 	terms[key_term].before_wind_id = wind_id
-	vim.cmd(options.buffer_pos .. "| term")
+	vim.cmd(open_buf_new .. "| term")
+	vim.cmd(resize)
 	vim.bo.ft = "better_term"
 	vim.cmd("file " .. terms[key_term].bufname)
 	vim.wo.relativenumber = false
