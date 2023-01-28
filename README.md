@@ -80,6 +80,7 @@ vim.keymap.set(
 ### Options
 
 - `prefix`: It is used to create the names and a autocmd(default: `Term_`).
+- `startInserted`: Should the terminal be in insert mode when opened(default: `true`)
 - `position`: Integrated terminal position(for option `:h opening-window`, default: `bot`)
 - `size`: Size of the terminal window (default: `18`)
 
@@ -89,6 +90,7 @@ vim.keymap.set(
 -- this is a config example
 require('betterTerm').setup {
   prefix = "CRAG_",
+  startInserted = false,
   position = "bot",
   size = 25
 }
@@ -99,6 +101,7 @@ require('betterTerm').setup {
 ```lua
 require('betterTerm').setup {
   prefix = "Term_",
+  startInserted = true,
   position = "bot",
   size = 18
 }

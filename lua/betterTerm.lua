@@ -4,7 +4,7 @@ local options = {
 	prefix = "Term_",
 	position = "bot",
 	size = 18,
-  startInsert = true,
+  startInserted = true,
 }
 
 local M = {}
@@ -22,7 +22,7 @@ M.setup = function(user_options)
   if options.position:find("vert", 1, true) == 1 then
     resize = "vertical " .. resize
   end
-  if options.startInsert then
+  if options.startInserted then
     cmd_mode = "startinsert"
   end
 	open_buf = options.position .. " sb "
