@@ -80,6 +80,7 @@ vim.keymap.set(
 ### Options
 
 - `prefix`: It is used to create the names and a autocmd(default: `Term_`).
+- `startInserted`: Should the terminal be in insert mode when opened(default: `true`)
 - `position`: Integrated terminal position(for option `:h opening-window`, default: `bot`)
 - `size`: Size of the terminal window (default: `18`)
 
@@ -89,6 +90,7 @@ vim.keymap.set(
 -- this is a config example
 require('betterTerm').setup {
   prefix = "CRAG_",
+  startInserted = false,
   position = "bot",
   size = 25
 }
@@ -99,6 +101,7 @@ require('betterTerm').setup {
 ```lua
 require('betterTerm').setup {
   prefix = "Term_",
+  startInserted = true,
   position = "bot",
   size = 18
 }
@@ -108,9 +111,10 @@ require('betterTerm').setup {
 
 ```lua
 -- use the best keymap for you
+-- change 1 for other terminal id
+-- Change "get_filetype_command()" to "get_project_command().command" for running projects
 vim.keymap.set("n", "<leader>e", function()
-  -- change 1 for other terminal id
-  require('betterTerm').send(require("code_runner.commands").get_filetype_command(), 1, { clean: true, interrupt: true })
+  require("betterTerm").send(require("code_runner.commands").get_filetype_command(), 1, false)
 end, { desc = "Excute File"})
 ```
 

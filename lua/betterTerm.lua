@@ -4,6 +4,7 @@ local options = {
 	prefix = "Term_",
 	position = "bot",
 	size = 18,
+  startInserted = true,
 }
 
 local M = {}
@@ -11,6 +12,7 @@ local M = {}
 local resize = ""
 local open_buf = ""
 local open_buf_new = ""
+local cmd_mode = ""
 
 --- Set user options
 ---@param user_options table
@@ -19,6 +21,9 @@ M.setup = function(user_options)
 	resize = "resize " .. options.size
   if options.position:find("vert", 1, true) == 1 then
     resize = "vertical " .. resize
+  end
+  if options.startInserted then
+    cmd_mode = "startinsert"
   end
 	open_buf = options.position .. " sb "
 	open_buf_new = options.position .. " new "
@@ -63,7 +68,7 @@ local function show_term(key_term, wind_id)
 	vim.cmd(open_buf .. terms[key_term].bufid .. " | " .. resize)
 	vim.wo.scl = "no"
 	terms[key_term].winid = vim.api.nvim_get_current_win()
-	vim.cmd("startinsert")
+	vim.cmd(cmd_mode)
 end
 
 --- Create new terminal
@@ -84,7 +89,7 @@ local function create_new_term(key_term, wind_id)
 	terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
 	terms[key_term].jobid = vim.b.terminal_job_id
 	terms[key_term].winid = vim.api.nvim_get_current_win()
-	vim.cmd("startinsert")
+	vim.cmd(cmd_mode)
 end
 
 --- get term id
