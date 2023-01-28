@@ -1,0 +1,4 @@
+M.open	betterTerm.txt	/*M.open*
+M.select	betterTerm.txt	/*M.select*
+M.send	betterTerm.txt	/*M.send*
+M.setup	betterTerm.txt	/*M.setup*
