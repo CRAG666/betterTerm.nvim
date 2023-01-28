@@ -111,9 +111,10 @@ require('betterTerm').setup {
 
 ```lua
 -- use the best keymap for you
+-- change 1 for other terminal id
+-- Change "get_filetype_command()" to "get_project_command().command" for running projects
 vim.keymap.set("n", "<leader>e", function()
-  -- change 1 for other terminal id
-  require('betterTerm').send(require("code_runner.commands").get_filetype_command(), 1, { clean: true, interrupt: true })
+  require("betterTerm").send(require("code_runner.commands").get_filetype_command(), 1, false)
 end, { desc = "Excute File"})
 ```
 
