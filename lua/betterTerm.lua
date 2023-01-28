@@ -4,7 +4,7 @@ local options = {
 	prefix = "Term_",
 	position = "bot",
 	size = 18,
-  startInserted = true,
+	startInserted = true,
 }
 
 local M = {}
@@ -14,17 +14,23 @@ local open_buf = ""
 local open_buf_new = ""
 local cmd_mode = ""
 
+---@class UserOptions
+---@field prefix string Prefix used to identify the terminals created
+---@field position string Terminal window position
+---@field size string Window size
+---@field startInserted boolean Start in insert mode
+
 --- Set user options
----@param user_options table
+---@param user_options UserOptions | nil Table of options
 M.setup = function(user_options)
 	options = vim.tbl_deep_extend("force", options, user_options or {})
 	resize = "resize " .. options.size
-  if options.position:find("vert", 1, true) == 1 then
-    resize = "vertical " .. resize
-  end
-  if options.startInserted then
-    cmd_mode = "startinsert"
-  end
+	if options.position:find("vert", 1, true) == 1 then
+		resize = "vertical " .. resize
+	end
+	if options.startInserted then
+		cmd_mode = "startinsert"
+	end
 	open_buf = options.position .. " sb "
 	open_buf_new = options.position .. " new "
 	vim.api.nvim_create_autocmd("BufWipeout", {
@@ -119,7 +125,7 @@ local function hide_current_term_on_win()
 end
 
 --- Validate if exist the terminal
----@param index string? | number?
+---@param index string | number | nil
 ---@return string
 local function create_term_key(index)
 	local default = options.prefix .. "1"
@@ -137,7 +143,7 @@ local function create_term_key(index)
 end
 
 --- Show or hide Term
----@param index string? | number?
+---@param index string | number | nil Terminal id
 function M.open(index)
 	index = create_term_key(index)
 	local buf_exist = vim.api.nvim_buf_is_valid(terms[index].bufid)
@@ -162,10 +168,14 @@ function M.open(index)
 	end
 end
 
+---@class Press
+---@field clean boolean Enable <C-l> key for clean
+---@field interrupt boolean Enable <C-c> key for close current comand
+
 --- Send command to Term
----@param cmd string
----@param num number?
----@param press table?
+---@param cmd string Command to execute
+---@param num number | nil Terminal id
+---@param press Press | nil Key to pressesd before execute command
 function M.send(cmd, num, press)
 	num = num or 1
 	local keys_press = vim.tbl_deep_extend("force", { clean = false, interrupt = true }, press or {})

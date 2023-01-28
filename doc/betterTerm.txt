@@ -1,20 +1,40 @@
+UserOptions                                                        *UserOptions*
+
+    Fields: ~
+        {prefix}         (string)   Prefix used to identify the terminals created
+        {position}       (string)   Terminal window position
+        {size}           (string)   Window size
+        {startInserted}  (boolean)  Start in insert mode
+
+
 M.setup({user_options})                                                *M.setup*
      Set user options
 
     Parameters: ~
-        {user_options}  (table)
+        {user_options}  (UserOptions|nil)  Table of options
 
 
-M.open()                                                                *M.open*
+M.open({index})                                                         *M.open*
+     Show or hide Term
+
+    Parameters: ~
+        {index}  (string|number|nil)  Terminal id
+
+
+Press                                                                    *Press*
+
+    Fields: ~
+        {clean}      (boolean)  Enable <C-l> key for clean
+        {interrupt}  (boolean)  Enable <C-c> key for close current comand
 
 
 M.send({cmd}, {num}, {press})                                           *M.send*
      Send command to Term
 
     Parameters: ~
-        {cmd}    (string)
-        {num}    (number)
-        {press}  (table)
+        {cmd}    (string)      Command to execute
+        {num}    (number|nil)  Terminal id
+        {press}  (Press|nil)   Key to pressesd before execute command
 
 
 M.select()                                                            *M.select*
