@@ -114,7 +114,7 @@ require('betterTerm').setup {
 -- change 1 for other terminal id
 -- Change "get_filetype_command()" to "get_project_command().command" for running projects
 vim.keymap.set("n", "<leader>e", function()
-  require("betterTerm").send(require("code_runner.commands").get_filetype_command(), 1, false)
+  require("betterTerm").send(require("code_runner.commands").get_filetype_command(), 1, { clean = false, interrupt = true })
 end, { desc = "Excute File"})
 ```
 
