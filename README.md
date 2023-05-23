@@ -62,13 +62,13 @@ No keymaps is assigned by default.It is better that you do it yourself, I will s
 ```lua
 local betterTerm = require('betterTerm')
 -- toggle firts term
-vim.keymap.set({"n", "t"}, "<C-ñ>", betterTerm.open, { desc = "Open terminal"})
+vim.keymap.set({"n", "t"}, "<C-;>", betterTerm.open, { desc = "Open terminal"})
 -- Select term focus
-vim.keymap.set({"n", "t"}, "<leader>tt", betterTerm.select, { desc = "Select terminal"})
+vim.keymap.set({"n"}, "<leader>tt", betterTerm.select, { desc = "Select terminal"})
 -- Create new term
 local current = 2
 vim.keymap.set(
-    {"n", "t"}, "<leader>tn",
+    {"n"}, "<leader>tn",
     function()
         betterTerm.open(current)
         current = current + 1
