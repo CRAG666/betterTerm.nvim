@@ -77,6 +77,16 @@ local function show_term(key_term, wind_id)
 	vim.cmd(cmd_mode)
 end
 
+local function clean()
+	vim.wo.relativenumber = false
+	vim.o.number = false
+	vim.bo.buflisted = false
+	vim.wo.foldcolumn = "0"
+	vim.bo.readonly = true
+	vim.wo.scl = "no"
+	vim.opt_local.statuscolumn = ""
+end
+
 --- Create new terminal
 ---@param key_term string
 ---@param wind_id number
@@ -86,13 +96,7 @@ local function create_new_term(key_term, wind_id)
 	vim.cmd(resize)
 	vim.bo.ft = "better_term"
 	vim.cmd("file " .. terms[key_term].bufname)
-	vim.wo.relativenumber = false
-	vim.o.number = false
-	vim.bo.buflisted = false
-	vim.wo.foldcolumn = "0"
-	vim.bo.readonly = true
-	vim.wo.scl = "no"
-	vim.opt_local.statuscolumn = ""
+	clean()
 	terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
 	terms[key_term].jobid = vim.b.terminal_job_id
 	terms[key_term].winid = vim.api.nvim_get_current_win()
@@ -154,6 +158,7 @@ function M.open(index)
 		if bufinfo.hidden == 1 then
 			hide_current_term_on_win()
 			show_term(index, current_wind_id)
+			clean()
 		else
 			vim.fn.win_gotoid(bufinfo.windows[1])
 			vim.cmd(":hide")
@@ -161,6 +166,7 @@ function M.open(index)
 				vim.fn.win_gotoid(current_wind_id)
 				hide_current_term_on_win()
 				show_term(index, current_wind_id)
+				clean()
 			end
 		end
 	else
