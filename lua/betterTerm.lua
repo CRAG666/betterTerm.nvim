@@ -92,6 +92,7 @@ local function create_new_term(key_term, wind_id)
 	vim.wo.foldcolumn = "0"
 	vim.bo.readonly = true
 	vim.wo.scl = "no"
+	vim.opt_local.statuscolumn = ""
 	terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
 	terms[key_term].jobid = vim.b.terminal_job_id
 	terms[key_term].winid = vim.api.nvim_get_current_win()
