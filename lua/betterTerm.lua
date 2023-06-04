@@ -1,4 +1,5 @@
 local terms = {}
+local autocmd = vim.api.nvim_create_autocmd
 
 local options = {
 	prefix = "Term_",
@@ -7,12 +8,14 @@ local options = {
 	startInserted = true,
 }
 
+ft = "better_term"
+
 local M = {}
 
 local resize = ""
 local open_buf = ""
 local open_buf_new = ""
-local cmd_mode = ""
+local startinsert = function() end
 
 ---@class UserOptions
 ---@field prefix string Prefix used to identify the terminals created
@@ -22,22 +25,42 @@ local cmd_mode = ""
 
 --- Set user options
 ---@param user_options UserOptions | nil Table of options
-M.setup = function(user_options)
+function M.setup(user_options)
 	options = vim.tbl_deep_extend("force", options, user_options or {})
 	resize = "resize " .. options.size
 	if options.position:find("vert", 1, true) == 1 then
 		resize = "vertical " .. resize
 	end
+
 	if options.startInserted then
-		cmd_mode = "startinsert"
+		startinsert = vim.cmd.startinsert
 	end
 	open_buf = options.position .. " sb "
 	open_buf_new = options.position .. " new "
-	vim.api.nvim_create_autocmd("BufWipeout", {
+	autocmd("BufWipeout", {
 		pattern = options.prefix .. "*",
 		callback = function()
 			bufname = vim.fn.bufname("%")
 			terms[bufname] = nil
+		end,
+	})
+
+	autocmd("FileType", {
+		pattern = {
+			ft,
+		},
+		callback = function()
+			vim.opt_local.swapfile = false
+			vim.opt_local.buflisted = false
+			-- vim.opt_local.modified = false
+			vim.opt_local.relativenumber = false
+			vim.opt_local.number = false
+			vim.bo.buflisted = false
+			-- vim.opt_local.foldcolumn = "0"
+			vim.opt_local.readonly = true
+			vim.opt_local.scl = "no"
+			vim.opt_local.statuscolumn = ""
+			startinsert()
 		end,
 	})
 end
@@ -57,7 +80,6 @@ end
 ---@return string
 local function insert_new_term_config(bufname)
 	terms[bufname] = {
-		bufname = bufname,
 		jobid = -1,
 		bufid = -1,
 		winid = -1,
@@ -72,19 +94,8 @@ end
 local function show_term(key_term, wind_id)
 	terms[key_term].before_wind_id = wind_id
 	vim.cmd(open_buf .. terms[key_term].bufid .. " | " .. resize)
-	vim.wo.scl = "no"
+	startinsert()
 	terms[key_term].winid = vim.api.nvim_get_current_win()
-	vim.cmd(cmd_mode)
-end
-
-local function clean()
-	vim.wo.relativenumber = false
-	vim.o.number = false
-	vim.bo.buflisted = false
-	vim.wo.foldcolumn = "0"
-	vim.bo.readonly = true
-	vim.wo.scl = "no"
-	vim.opt_local.statuscolumn = ""
 end
 
 --- Create new terminal
@@ -94,28 +105,16 @@ local function create_new_term(key_term, wind_id)
 	terms[key_term].before_wind_id = wind_id
 	vim.cmd(open_buf_new .. "| term")
 	vim.cmd(resize)
-	vim.bo.ft = "better_term"
-	vim.cmd("file " .. terms[key_term].bufname)
-	clean()
+	vim.bo.ft = ft
+	vim.cmd("file " .. key_term)
 	terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
 	terms[key_term].jobid = vim.b.terminal_job_id
 	terms[key_term].winid = vim.api.nvim_get_current_win()
-	vim.cmd(cmd_mode)
-end
-
---- get term id
----@return boolean
-local function is_cbuffer_term()
-	local name = vim.fn.bufname("%")
-	if name:find("^" .. options.prefix) ~= nil then
-		return true
-	end
-	return false
 end
 
 --- Hide current Term
 local function hide_current_term_on_win()
-	if is_cbuffer_term() then
+	if vim.bo.ft == ft then
 		vim.cmd(":hide")
 		return
 	end
@@ -151,22 +150,22 @@ end
 ---@param index string | number | nil Terminal id
 function M.open(index)
 	index = create_term_key(index)
-	local buf_exist = vim.api.nvim_buf_is_valid(terms[index].bufid)
+	local term = terms[index]
+	local buf_exist = vim.api.nvim_buf_is_valid(term.bufid)
 	local current_wind_id = vim.api.nvim_get_current_win()
 	if buf_exist then
-		local bufinfo = vim.fn.getbufinfo(terms[index].bufid)[1]
+		local bufinfo = vim.fn.getbufinfo(term.bufid)[1]
 		if bufinfo.hidden == 1 then
 			hide_current_term_on_win()
 			show_term(index, current_wind_id)
-			clean()
 		else
-			vim.fn.win_gotoid(bufinfo.windows[1])
+			local target_win_id = bufinfo.windows[1]
+			vim.fn.win_gotoid(target_win_id)
 			vim.cmd(":hide")
-			if current_wind_id ~= terms[index].before_wind_id and current_wind_id ~= bufinfo.windows[1] then
+			if current_wind_id ~= term.before_wind_id and current_wind_id ~= target_win_id then
 				vim.fn.win_gotoid(current_wind_id)
 				hide_current_term_on_win()
 				show_term(index, current_wind_id)
-				clean()
 			end
 		end
 	else
