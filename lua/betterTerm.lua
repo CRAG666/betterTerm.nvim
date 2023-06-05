@@ -82,7 +82,6 @@ local function insert_new_term_config(bufname)
 	terms[bufname] = {
 		jobid = -1,
 		bufid = -1,
-		winid = -1,
 		before_wind_id = -1,
 	}
 	return bufname
@@ -95,7 +94,6 @@ local function show_term(key_term, wind_id)
 	terms[key_term].before_wind_id = wind_id
 	vim.cmd(open_buf .. terms[key_term].bufid .. " | " .. resize)
 	startinsert()
-	terms[key_term].winid = vim.api.nvim_get_current_win()
 end
 
 --- Create new terminal
@@ -109,20 +107,20 @@ local function create_new_term(key_term, wind_id)
 	vim.cmd("file " .. key_term)
 	terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
 	terms[key_term].jobid = vim.b.terminal_job_id
-	terms[key_term].winid = vim.api.nvim_get_current_win()
 end
 
 --- Hide current Term
 local function hide_current_term_on_win()
 	if vim.bo.ft == ft then
-		vim.cmd(":hide")
+		vim.api.nvim_win_hide(0)
 		return
 	end
-	local all_terms = vim.tbl_keys(terms)
-	for _, term_name in pairs(all_terms) do
-		if vim.fn.bufwinnr(term_name) > 0 then
-			vim.fn.win_gotoid(terms[term_name].winid)
-			vim.cmd(":hide")
+	local all_wins = vim.api.nvim_tabpage_list_wins(0)
+	for _, win in pairs(all_wins) do
+		local cbuf = vim.api.nvim_win_get_buf(win)
+		if vim.bo[cbuf].ft == ft then
+			vim.fn.win_gotoid(win)
+			vim.api.nvim_win_hide(0)
 			return
 		end
 	end
@@ -161,7 +159,7 @@ function M.open(index)
 		else
 			local target_win_id = bufinfo.windows[1]
 			vim.fn.win_gotoid(target_win_id)
-			vim.cmd(":hide")
+			vim.api.nvim_win_hide(0)
 			if current_wind_id ~= term.before_wind_id and current_wind_id ~= target_win_id then
 				vim.fn.win_gotoid(current_wind_id)
 				hide_current_term_on_win()
@@ -189,7 +187,7 @@ function M.send(cmd, num, press)
 	local current_term = terms[key_term]
 	if current_term == nil then
 		M.open(key_term)
-		vim.loop.sleep(100)
+		vim.uv.sleep(100)
 		current_term = terms[key_term]
 	end
 	local buf_exist = vim.api.nvim_buf_is_valid(current_term.bufid)
@@ -203,7 +201,7 @@ function M.send(cmd, num, press)
 				binds = binds .. "<C-l> "
 			end
 			vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes(binds, true, true, true))
-			vim.loop.sleep(100)
+			vim.uv.sleep(100)
 		end
 		vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
 	else
