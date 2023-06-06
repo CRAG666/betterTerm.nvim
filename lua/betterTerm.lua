@@ -12,7 +12,6 @@ ft = "better_term"
 
 local M = {}
 
-local resize = ""
 local open_buf = ""
 local open_buf_new = ""
 local startinsert = function() end
@@ -27,10 +26,6 @@ local startinsert = function() end
 ---@param user_options UserOptions | nil Table of options
 function M.setup(user_options)
 	options = vim.tbl_deep_extend("force", options, user_options or {})
-	resize = "resize " .. options.size
-	if options.position:find("vert", 1, true) == 1 then
-		resize = "vertical " .. resize
-	end
 
 	if options.startInserted then
 		startinsert = vim.cmd.startinsert
@@ -82,27 +77,30 @@ local function insert_new_term_config(bufname)
 	terms[bufname] = {
 		jobid = -1,
 		bufid = -1,
-		before_wind_id = -1,
+		tabpage = -1,
 	}
 	return bufname
 end
 
 --- Show terminal for id
 ---@param key_term string
----@param wind_id number
-local function show_term(key_term, wind_id)
-	terms[key_term].before_wind_id = wind_id
-	vim.cmd(open_buf .. terms[key_term].bufid .. " | " .. resize)
+---@param tabpage number
+local function show_term(key_term, tabpage)
+	terms[key_term].tabpage = tabpage
+	vim.cmd(open_buf .. terms[key_term].bufid)
+	vim.api.nvim_win_set_height(0, options.size)
+	vim.api.nvim_win_set_width(0, options.size)
 	startinsert()
 end
 
 --- Create new terminal
 ---@param key_term string
----@param wind_id number
-local function create_new_term(key_term, wind_id)
-	terms[key_term].before_wind_id = wind_id
+---@param tabpage number
+local function create_new_term(key_term, tabpage)
+	terms[key_term].tabpage = tabpage
 	vim.cmd(open_buf_new .. "| term")
-	vim.cmd(resize)
+	vim.api.nvim_win_set_height(0, options.size)
+	vim.api.nvim_win_set_width(0, options.size)
 	vim.bo.ft = ft
 	vim.cmd("file " .. key_term)
 	terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
@@ -110,7 +108,7 @@ local function create_new_term(key_term, wind_id)
 end
 
 --- Hide current Term
-local function hide_current_term_on_win()
+local function hide_current_term_in_tab()
 	if vim.bo.ft == ft then
 		vim.api.nvim_win_hide(0)
 		return
@@ -119,8 +117,7 @@ local function hide_current_term_on_win()
 	for _, win in pairs(all_wins) do
 		local cbuf = vim.api.nvim_win_get_buf(win)
 		if vim.bo[cbuf].ft == ft then
-			vim.fn.win_gotoid(win)
-			vim.api.nvim_win_hide(0)
+			vim.api.nvim_win_hide(win)
 			return
 		end
 	end
@@ -149,26 +146,24 @@ end
 function M.open(index)
 	index = create_term_key(index)
 	local term = terms[index]
+	local current_tab = vim.api.nvim_tabpage_get_number(0)
 	local buf_exist = vim.api.nvim_buf_is_valid(term.bufid)
-	local current_wind_id = vim.api.nvim_get_current_win()
 	if buf_exist then
 		local bufinfo = vim.fn.getbufinfo(term.bufid)[1]
 		if bufinfo.hidden == 1 then
-			hide_current_term_on_win()
-			show_term(index, current_wind_id)
+			hide_current_term_in_tab()
+			show_term(index, current_tab)
 		else
 			local target_win_id = bufinfo.windows[1]
-			vim.fn.win_gotoid(target_win_id)
-			vim.api.nvim_win_hide(0)
-			if current_wind_id ~= term.before_wind_id and current_wind_id ~= target_win_id then
-				vim.fn.win_gotoid(current_wind_id)
-				hide_current_term_on_win()
-				show_term(index, current_wind_id)
+			vim.api.nvim_win_hide(target_win_id)
+			if current_tab ~= term.tabpage then
+				hide_current_term_in_tab()
+				show_term(index, current_tab)
 			end
 		end
 	else
-		hide_current_term_on_win()
-		create_new_term(index, current_wind_id)
+		hide_current_term_in_tab()
+		create_new_term(index, current_tab)
 	end
 end
 
