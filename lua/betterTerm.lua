@@ -96,13 +96,28 @@ end
 --- Create new terminal
 ---@param key_term string
 ---@param tabpage number
-local function create_new_term(key_term, tabpage)
+---@param opts? BetterTermOpenOptions
+local function create_new_term(key_term, tabpage, opts)
+  opts = opts or {}
 	terms[key_term].tabpage = tabpage
-	vim.cmd(open_buf_new .. "| term")
+	vim.cmd(open_buf_new)
+  -- Skip if opts.cwd is the current directory
+  if opts.cwd and opts.cwd ~= "." and opts.cwd ~= vim.uv.cwd() then
+    local stat = vim.uv.fs_stat(opts.cwd)
+    if not stat then
+      print(("betterTerm: path '%s' does not exist"):format(opts.cwd))
+    elseif stat.type ~= "directory" then
+      print(("betterTerm: path '%s' is not a directory"):format(opts.cwd))
+    else
+      -- Change the window's directory to the desired directory
+      vim.cmd.lcd(opts.cwd)
+    end
+  end
+	vim.cmd.term()
 	vim.api.nvim_win_set_height(0, options.size)
 	vim.api.nvim_win_set_width(0, options.size)
 	vim.bo.ft = ft
-	vim.cmd("file " .. key_term)
+	vim.cmd.file(key_term)
 	terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
 	terms[key_term].jobid = vim.b.terminal_job_id
 end
@@ -140,10 +155,15 @@ local function create_term_key(index)
 	end
 	return index
 end
+---@class BetterTermOpenOptions
+---The working directory of the terminal.
+---Note: Only takes effect on new terminals.
+---@field cwd? string
 
 --- Show or hide Term
 ---@param index string | number | nil Terminal id
-function M.open(index)
+---@param opts? BetterTermOpenOptions
+function M.open(index, opts)
 	index = create_term_key(index)
 	local term = terms[index]
 	local current_tab = vim.api.nvim_tabpage_get_number(0)
@@ -163,7 +183,7 @@ function M.open(index)
 		end
 	else
 		hide_current_term_in_tab()
-		create_new_term(index, current_tab)
+		create_new_term(index, current_tab, opts)
 	end
 end
 
