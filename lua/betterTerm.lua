@@ -77,7 +77,7 @@ local function insert_new_term_config(bufname)
 	terms[bufname] = {
 		jobid = -1,
 		bufid = -1,
-		tabpage = -1,
+		tabpage = 0,
 	}
 	return bufname
 end
@@ -98,21 +98,21 @@ end
 ---@param tabpage number
 ---@param opts? BetterTermOpenOptions
 local function create_new_term(key_term, tabpage, opts)
-  opts = opts or {}
+	opts = opts or {}
 	terms[key_term].tabpage = tabpage
 	vim.cmd(open_buf_new)
-  -- Skip if opts.cwd is the current directory
-  if opts.cwd and opts.cwd ~= "." and opts.cwd ~= vim.uv.cwd() then
-    local stat = vim.uv.fs_stat(opts.cwd)
-    if not stat then
-      print(("betterTerm: path '%s' does not exist"):format(opts.cwd))
-    elseif stat.type ~= "directory" then
-      print(("betterTerm: path '%s' is not a directory"):format(opts.cwd))
-    else
-      -- Change the window's directory to the desired directory
-      vim.cmd.lcd(opts.cwd)
-    end
-  end
+	-- Skip if opts.cwd is the current directory
+	if opts.cwd and opts.cwd ~= "." and opts.cwd ~= vim.uv.cwd() then
+		local stat = vim.uv.fs_stat(opts.cwd)
+		if not stat then
+			print(("betterTerm: path '%s' does not exist"):format(opts.cwd))
+		elseif stat.type ~= "directory" then
+			print(("betterTerm: path '%s' is not a directory"):format(opts.cwd))
+		else
+			-- Change the window's directory to the desired directory
+			vim.cmd.lcd(opts.cwd)
+		end
+	end
 	vim.cmd.term()
 	vim.api.nvim_win_set_height(0, options.size)
 	vim.api.nvim_win_set_width(0, options.size)
@@ -123,15 +123,15 @@ local function create_new_term(key_term, tabpage, opts)
 end
 
 --- Hide current Term
-local function hide_current_term_in_tab()
+local function hide_current_term_in_tab(term)
 	if vim.bo.ft == ft then
 		vim.api.nvim_win_hide(0)
 		return
 	end
-	local all_wins = vim.api.nvim_tabpage_list_wins(0)
+	local all_wins = vim.api.nvim_tabpage_list_wins(term.tabpage)
 	for _, win in pairs(all_wins) do
 		local cbuf = vim.api.nvim_win_get_buf(win)
-		if vim.bo[cbuf].ft == ft then
+		if cbuf == term.bufid then
 			vim.api.nvim_win_hide(win)
 			return
 		end
@@ -148,13 +148,12 @@ local function create_term_key(index)
 	else
 		index = index or default
 	end
-	if vim.tbl_isempty(terms) then
-		return insert_new_term_config(index)
-	elseif not terms[index] then
+	if not terms[index] then
 		return insert_new_term_config(index)
 	end
 	return index
 end
+
 ---@class BetterTermOpenOptions
 ---The working directory of the terminal.
 ---Note: Only takes effect on new terminals.
@@ -171,18 +170,18 @@ function M.open(index, opts)
 	if buf_exist then
 		local bufinfo = vim.fn.getbufinfo(term.bufid)[1]
 		if bufinfo.hidden == 1 then
-			hide_current_term_in_tab()
+			hide_current_term_in_tab(term)
 			show_term(index, current_tab)
 		else
 			local target_win_id = bufinfo.windows[1]
 			vim.api.nvim_win_hide(target_win_id)
 			if current_tab ~= term.tabpage then
-				hide_current_term_in_tab()
+				hide_current_term_in_tab(term)
 				show_term(index, current_tab)
 			end
 		end
 	else
-		hide_current_term_in_tab()
+		hide_current_term_in_tab(term)
 		create_new_term(index, current_tab, opts)
 	end
 end
