@@ -25,15 +25,23 @@ https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-
 use { 'CRAG666/betterTerm.nvim' }
 ```
 
-- With [paq-nvim](https://github.com/savq/paq-nvim)
+- With [Lazy](https://github.com/folke/lazy.nvim)
 
 ```lua
-require "paq"{'CRAG666/betterTerm.nvim';}
+{
+  "CRAG666/betterTerm.nvim",
+  opts = {
+    position = "bot",
+    size = 15,
+  },
+}
 ```
+
+
 
 ### Quick start
 
-Add the following line to your init.lua
+Add the following line to your init.lua(If not use *Lazy*)
 
 ```lua
 require('betterTerm').setup()
@@ -43,7 +51,7 @@ require('betterTerm').setup()
 
 - Toggle term
 - Multi term
-- Close the terminal as always, no rare mapping were added, just use :q to close
+- Close the terminal as always, no rare mapping were added, just use :q! to close
 - Send command
 - Select the terminal you need, with Neovim's native selector
 - If you want you could have HotReload easily
@@ -107,18 +115,8 @@ require('betterTerm').setup {
 }
 ```
 
-# Integration with [code_runner.nvim](https://github.com/CRAG666/code_runner.nvim)
+Integration with [code_runner.nvim](https://github.com/CRAG666/code_runner.nvim), see for more info.
 
-```lua
--- use the best keymap for you
--- change 1 for other terminal id
--- Change "get_filetype_command()" to "get_project_command().command" for running projects
-vim.keymap.set("n", "<leader>e", function()
-  require("betterTerm").send(require("code_runner.commands").get_filetype_command(), 1, { clean = false, interrupt = true })
-end, { desc = "Excute File"})
-```
-
-You can have Hotreload for any language if instead of assigning a `keymap`, create an `autocmd` for the language you want to add Hotreload
 
 # Contributing
 
