@@ -123,15 +123,18 @@ local function create_new_term(key_term, tabpage, opts)
 end
 
 --- Hide current Term
-local function hide_current_term_in_tab(term)
+local function hide_current_term_in_tab(index)
 	if vim.bo.ft == ft then
 		vim.api.nvim_win_hide(0)
 		return
 	end
-	local all_wins = vim.api.nvim_tabpage_list_wins(term.tabpage)
+	if vim.api.nvim_tabpage_is_valid(terms[index].tabpage) == false then
+		terms[index].tabpage = 0
+	end
+	local all_wins = vim.api.nvim_tabpage_list_wins(terms[index].tabpage)
 	for _, win in pairs(all_wins) do
 		local cbuf = vim.api.nvim_win_get_buf(win)
-		if cbuf == term.bufid then
+		if cbuf == terms[index].bufid then
 			vim.api.nvim_win_hide(win)
 			return
 		end
@@ -170,18 +173,18 @@ function M.open(index, opts)
 	if buf_exist then
 		local bufinfo = vim.fn.getbufinfo(term.bufid)[1]
 		if bufinfo.hidden == 1 then
-			hide_current_term_in_tab(term)
+			hide_current_term_in_tab(index)
 			show_term(index, current_tab)
 		else
 			local target_win_id = bufinfo.windows[1]
 			vim.api.nvim_win_hide(target_win_id)
 			if current_tab ~= term.tabpage then
-				hide_current_term_in_tab(term)
+				hide_current_term_in_tab(index)
 				show_term(index, current_tab)
 			end
 		end
 	else
-		hide_current_term_in_tab(term)
+		hide_current_term_in_tab(index)
 		create_new_term(index, current_tab, opts)
 	end
 end
