@@ -13,7 +13,7 @@ ft = "better_term"
 local M = {}
 
 local open_buf = ""
-local open_buf_new = ""
+local pos = ""
 local startinsert = function() end
 
 ---@class UserOptions
@@ -31,7 +31,7 @@ function M.setup(user_options)
 		startinsert = vim.cmd.startinsert
 	end
 	open_buf = options.position .. " sb "
-	open_buf_new = options.position .. " new "
+	pos = options.position
 	autocmd("BufWipeout", {
 		pattern = options.prefix .. "*",
 		callback = function()
@@ -100,7 +100,6 @@ end
 local function create_new_term(key_term, tabpage, opts)
 	opts = opts or {}
 	terms[key_term].tabpage = tabpage
-	vim.cmd(open_buf_new)
 	-- Skip if opts.cwd is the current directory
 	if opts.cwd and opts.cwd ~= "." and opts.cwd ~= vim.uv.cwd() then
 		local stat = vim.uv.fs_stat(opts.cwd)
@@ -113,7 +112,7 @@ local function create_new_term(key_term, tabpage, opts)
 			vim.cmd.lcd(opts.cwd)
 		end
 	end
-	vim.cmd.term()
+	vim.cmd(pos .. " te")
 	vim.api.nvim_win_set_height(0, options.size)
 	vim.api.nvim_win_set_width(0, options.size)
 	vim.bo.ft = ft
@@ -217,8 +216,8 @@ function M.send(cmd, num, press)
 			if keys_press.clean then
 				binds = binds .. "<C-l> "
 			end
-			vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes(binds, true, true, true))
 			vim.uv.sleep(100)
+			vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes(binds, true, true, true))
 		end
 		vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
 	else
