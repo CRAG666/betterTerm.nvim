@@ -101,6 +101,8 @@ local function create_new_term(key_term, tabpage, opts)
 	opts = opts or {}
 	terms[key_term].tabpage = tabpage
 	-- Skip if opts.cwd is the current directory
+	local buf = vim.api.nvim_create_buf(true, false)
+	vim.cmd(open_buf .. buf)
 	if opts.cwd and opts.cwd ~= "." and opts.cwd ~= vim.uv.cwd() then
 		local stat = vim.uv.fs_stat(opts.cwd)
 		if not stat then
@@ -112,7 +114,7 @@ local function create_new_term(key_term, tabpage, opts)
 			vim.cmd.lcd(opts.cwd)
 		end
 	end
-	vim.cmd(pos .. " te")
+	vim.cmd.terminal()
 	vim.api.nvim_win_set_height(0, options.size)
 	vim.api.nvim_win_set_width(0, options.size)
 	vim.bo.ft = ft
