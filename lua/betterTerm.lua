@@ -1,5 +1,10 @@
+local api = vim.api
+local fn = vim.fn
+local cmd = vim.cmd
+local uv = vim.uv
+
 local terms = {}
-local autocmd = vim.api.nvim_create_autocmd
+local autocmd = api.nvim_create_autocmd
 
 local options = {
 	prefix = "Term_",
@@ -8,7 +13,7 @@ local options = {
 	startInserted = true,
 }
 
-ft = "better_term"
+local ft = "better_term"
 
 local M = {}
 
@@ -22,56 +27,60 @@ local startinsert = function() end
 ---@field size string Window size
 ---@field startInserted boolean Start in insert mode
 
---- Set user options
----@param user_options UserOptions | nil Table of options
+--- Setup
+---@param user_options UserOptions | nil
 function M.setup(user_options)
 	options = vim.tbl_deep_extend("force", options, user_options or {})
-
-	if options.startInserted then
-		startinsert = vim.cmd.startinsert
-	end
+	startinsert = options.startInserted and cmd.startinsert or function() end
 	open_buf = options.position .. " sb "
 	pos = options.position
+
+	local group = api.nvim_create_augroup("BetterTerm", { clear = true })
+
 	autocmd("BufWipeout", {
+		group = group,
 		pattern = options.prefix .. "*",
 		callback = function()
-			bufname = vim.fn.bufname("%")
+			local bufname = fn.bufname("%")
 			terms[bufname] = nil
 		end,
 	})
 
+	-- FileType handler
 	autocmd("FileType", {
-		pattern = {
-			ft,
-		},
+		group = group,
+		pattern = { ft },
 		callback = function()
-			vim.opt_local.swapfile = false
-			vim.opt_local.buflisted = false
-			-- vim.opt_local.modified = false
-			vim.opt_local.relativenumber = false
-			vim.opt_local.number = false
+			local opt_local = vim.opt_local
+			local opts = {
+				swapfile = false,
+				buflisted = false,
+				relativenumber = false,
+				number = false,
+				readonly = true,
+				scl = "no",
+				statuscolumn = "",
+			}
+
+			for key, value in pairs(opts) do
+				opt_local[key] = value
+			end
+
 			vim.bo.buflisted = false
-			-- vim.opt_local.foldcolumn = "0"
-			vim.opt_local.readonly = true
-			vim.opt_local.scl = "no"
-			vim.opt_local.statuscolumn = ""
 			startinsert()
 		end,
 	})
 end
 
---- Get table index for id term
+--- Generate key for terminal
 ---@param num number
 ---@return string?
 local function get_term_key(num)
-	if num == nil then
-		return nil
-	end
-	return string.format(options.prefix .. "%d", num)
+	return num and string.format(options.prefix .. "%d", num)
 end
 
---- Save information of new term
----@param bufname string of terminal
+--- Insert new configuration
+---@param bufname string
 ---@return string
 local function insert_new_term_config(bufname)
 	terms[bufname] = {
@@ -82,14 +91,16 @@ local function insert_new_term_config(bufname)
 	return bufname
 end
 
---- Show terminal for id
+--- Show terminal
 ---@param key_term string
 ---@param tabpage number
 local function show_term(key_term, tabpage)
-	terms[key_term].tabpage = tabpage
-	vim.cmd(open_buf .. terms[key_term].bufid)
-	vim.api.nvim_win_set_height(0, options.size)
-	vim.api.nvim_win_set_width(0, options.size)
+	local term = terms[key_term]
+	term.tabpage = tabpage
+	cmd(open_buf .. term.bufid)
+	local win = api.nvim_get_current_win()
+	api.nvim_win_set_height(win, options.size)
+	api.nvim_win_set_width(win, options.size)
 	startinsert()
 end
 
@@ -98,51 +109,55 @@ end
 ---@param tabpage number
 ---@param opts? BetterTermOpenOptions
 local function create_new_term(key_term, tabpage, opts)
+	local term = terms[key_term]
+	term.tabpage = tabpage
 	opts = opts or {}
-	terms[key_term].tabpage = tabpage
-	-- Skip if opts.cwd is the current directory
-	local buf = vim.api.nvim_create_buf(true, false)
-	vim.cmd(open_buf .. buf)
-	if opts.cwd and opts.cwd ~= "." and opts.cwd ~= vim.uv.cwd() then
-		local stat = vim.uv.fs_stat(opts.cwd)
+
+	local buf = api.nvim_create_buf(true, false)
+	cmd(open_buf .. buf)
+
+	if opts.cwd and opts.cwd ~= "." and opts.cwd ~= uv.cwd() then
+		local stat = uv.fs_stat(opts.cwd)
 		if not stat then
 			print(("betterTerm: path '%s' does not exist"):format(opts.cwd))
 		elseif stat.type ~= "directory" then
 			print(("betterTerm: path '%s' is not a directory"):format(opts.cwd))
 		else
-			-- Change the window's directory to the desired directory
-			vim.cmd.lcd(opts.cwd)
+			cmd.lcd(opts.cwd)
 		end
 	end
-	vim.cmd.terminal()
-	vim.api.nvim_win_set_height(0, options.size)
-	vim.api.nvim_win_set_width(0, options.size)
+
+	cmd.terminal()
+	local win = api.nvim_get_current_win()
+	api.nvim_win_set_height(win, options.size)
+	api.nvim_win_set_width(win, options.size)
 	vim.bo.ft = ft
-	vim.cmd.file(key_term)
-	terms[key_term].bufid = vim.api.nvim_buf_get_number(0)
-	terms[key_term].jobid = vim.b.terminal_job_id
+	cmd.file(key_term)
+	term.bufid = api.nvim_buf_get_number(0)
+	term.jobid = vim.b.terminal_job_id
 end
 
---- Hide current Term
+--- Hide current terminal in tab
 local function hide_current_term_in_tab(index)
 	if vim.bo.ft == ft then
-		vim.api.nvim_win_hide(0)
+		api.nvim_win_hide(0)
 		return
 	end
-	if vim.api.nvim_tabpage_is_valid(terms[index].tabpage) == false then
-		terms[index].tabpage = 0
+
+	local term = terms[index]
+	if not api.nvim_tabpage_is_valid(term.tabpage) then
+		term.tabpage = 0
 	end
-	local all_wins = vim.api.nvim_tabpage_list_wins(terms[index].tabpage)
-	for _, win in pairs(all_wins) do
-		local cbuf = vim.api.nvim_win_get_buf(win)
-		if cbuf == terms[index].bufid then
-			vim.api.nvim_win_hide(win)
+
+	for _, win in ipairs(api.nvim_tabpage_list_wins(term.tabpage)) do
+		if api.nvim_win_get_buf(win) == term.bufid then
+			api.nvim_win_hide(win)
 			return
 		end
 	end
 end
 
---- Validate if exist the terminal
+--- Create key for terminal
 ---@param index string | number | nil
 ---@return string
 local function create_term_key(index)
@@ -152,33 +167,27 @@ local function create_term_key(index)
 	else
 		index = index or default
 	end
-	if not terms[index] then
-		return insert_new_term_config(index)
-	end
-	return index
+	return terms[index] and index or insert_new_term_config(index)
 end
 
 ---@class BetterTermOpenOptions
----The working directory of the terminal.
----Note: Only takes effect on new terminals.
 ---@field cwd? string
 
---- Show or hide Term
----@param index string | number | nil Terminal id
+--- Open terminal
+---@param index string | number | nil
 ---@param opts? BetterTermOpenOptions
 function M.open(index, opts)
 	index = create_term_key(index)
 	local term = terms[index]
-	local current_tab = vim.api.nvim_tabpage_get_number(0)
-	local buf_exist = vim.api.nvim_buf_is_valid(term.bufid)
-	if buf_exist then
-		local bufinfo = vim.fn.getbufinfo(term.bufid)[1]
+	local current_tab = api.nvim_get_current_tabpage()
+
+	if api.nvim_buf_is_valid(term.bufid) then
+		local bufinfo = fn.getbufinfo(term.bufid)[1]
 		if bufinfo.hidden == 1 then
 			hide_current_term_in_tab(index)
 			show_term(index, current_tab)
 		else
-			local target_win_id = bufinfo.windows[1]
-			vim.api.nvim_win_hide(target_win_id)
+			api.nvim_win_hide(bufinfo.windows[1])
 			if current_tab ~= term.tabpage then
 				hide_current_term_in_tab(index)
 				show_term(index, current_tab)
@@ -191,25 +200,26 @@ function M.open(index, opts)
 end
 
 ---@class Press
----@field clean boolean Enable <C-l> key for clean
----@field interrupt boolean Enable <C-c> key for close current comand
+---@field clean boolean
+---@field interrupt boolean
 
---- Send command to Term
----@param cmd string Command to execute
----@param num number | nil Terminal id
----@param press Press | nil Key to pressesd before execute command
+--- Send command to terminal
+---@param cmd string
+---@param num number | nil
+---@param press Press | nil
 function M.send(cmd, num, press)
 	num = num or 1
 	local keys_press = vim.tbl_deep_extend("force", { clean = false, interrupt = true }, press or {})
 	local key_term = get_term_key(num)
 	local current_term = terms[key_term]
-	if current_term == nil then
+
+	if not current_term then
 		M.open(key_term)
-		vim.uv.sleep(100)
+		uv.sleep(100)
 		current_term = terms[key_term]
 	end
-	local buf_exist = vim.api.nvim_buf_is_valid(current_term.bufid)
-	if buf_exist then
+
+	if api.nvim_buf_is_valid(current_term.bufid) then
 		if keys_press.interrupt or keys_press.clean then
 			local binds = ""
 			if keys_press.interrupt then
@@ -218,27 +228,28 @@ function M.send(cmd, num, press)
 			if keys_press.clean then
 				binds = binds .. "<C-l> "
 			end
-			vim.uv.sleep(100)
-			vim.api.nvim_chan_send(current_term.jobid, vim.api.nvim_replace_termcodes(binds, true, true, true))
+			uv.sleep(100)
+			api.nvim_chan_send(current_term.jobid, api.nvim_replace_termcodes(binds, true, true, true))
 		end
-		vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
+		api.nvim_chan_send(current_term.jobid, cmd .. "\n")
 	else
-		vim.api.nvim_chan_send(current_term.jobid, cmd .. "\n")
+		api.nvim_chan_send(current_term.jobid, cmd .. "\n")
 	end
 end
 
---- Select term and show or hide
+--- Select terminal
 function M.select()
 	if vim.tbl_isempty(terms) then
 		print("Empty betterTerm's")
 		return
 	end
+
 	vim.ui.select(vim.tbl_keys(terms), {
 		prompt = "Select a Term",
 		format_item = function(term)
 			return term
 		end,
-	}, function(term, _)
+	}, function(term)
 		if term then
 			M.open(term)
 		else
