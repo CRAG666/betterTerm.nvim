@@ -121,17 +121,6 @@ local function update_term_tabs()
   -- Apply highlights and add clickable regions
   for _, hl in ipairs(highlights) do
     api_buf_add_highlight(tab_buffer, tab_namespace, hl.hl_group, 0, hl.start_col, hl.end_col)
-
-    -- Add clickable functionality
-    vim.api.nvim_buf_set_extmark(tab_buffer, tab_namespace, 0, hl.start_col, {
-      end_col = hl.end_col,
-      hl_group = hl.hl_group,
-      sign_text = "",
-      sign_hl_group = "",
-      virt_text = {},
-      virt_text_pos = "overlay",
-      priority = 100,
-    })
   end
 
   -- Close existing tab window if it exists
