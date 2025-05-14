@@ -21,15 +21,29 @@ local api_buf_get_number = api.nvim_buf_get_number
 local api_tabpage_is_valid = api.nvim_tabpage_is_valid
 local api_chan_send = api.nvim_chan_send
 local api_replace_termcodes = api.nvim_replace_termcodes
+local api_create_namespace = api.nvim_create_namespace
+local api_buf_set_lines = api.nvim_buf_set_lines
+local api_buf_add_highlight = api.nvim_buf_add_highlight
+local api_open_win = api.nvim_open_win
 
 local terms = {}
 local ft = "better_term"
+local tab_buffer = nil -- Buffer for terminal tabs
+local tab_window = nil -- Window for terminal tabs
+local tab_namespace = api_create_namespace("BetterTermTabs")
+local term_current = 2
 
 local options = {
   prefix = "Term_",
   position = "bot",
   size = 18,
   startInserted = true,
+  show_tabs = true,
+  tab_height = 1,               -- Height of the tabs bar
+  active_tab_hl = "TabLineSel", -- Highlight group for active tab
+  inactive_tab_hl = "TabLine",  -- Highlight group for inactive tabs
+  new_tab_mapping = "<C-t>",
+  jump_tab_mapping = "<C-$tab>"
 }
 
 local M = {}
@@ -47,6 +61,107 @@ local term_key_cache = {}
 ---@field position string Terminal window position
 ---@field size string Window size
 ---@field startInserted boolean Start in insert mode
+---@field show_tabs boolean Show terminal tabs
+---@field tab_height number Height of the tabs bar
+---@field active_tab_hl string Highlight group for active tab
+---@field inactive_tab_hl string Highlight group for inactive tabs
+
+-- Update terminal tabs display
+local function update_term_tabs()
+  if not options.show_tabs then return end
+
+  -- Create tab buffer if it doesn't exist
+  if not tab_buffer or not api_buf_is_valid(tab_buffer) then
+    tab_buffer = api_create_buf(false, true)
+    vim.bo[tab_buffer].modifiable = true
+    vim.bo[tab_buffer].buftype = "nofile"
+    vim.bo[tab_buffer].filetype = "better_term_tabs"
+  end
+
+  -- Collect terminal information
+  local tab_content = {}
+  local keys = vim.tbl_keys(terms)
+  table.sort(keys, function(a, b)
+    local num_a = tonumber(string.match(a, "%d+"))
+    local num_b = tonumber(string.match(b, "%d+"))
+    return num_a < num_b
+  end)
+
+  -- Create tab content
+  local tabs_text = "  "
+  local highlights = {}
+  local active_term = nil
+
+  -- Find active terminal
+  if vim.bo.ft == ft then
+    active_term = fn.bufname("%")
+  end
+
+  for i, key in ipairs(keys) do
+    local term = terms[key]
+    if api_buf_is_valid(term.bufid) then
+      -- Format: [1] Term_1  [2] Term_2
+      local tab_name = string.format("[%d] %s", i, key)
+      local start_col = #tabs_text
+      tabs_text = tabs_text .. tab_name .. "  "
+
+      -- Store highlight information
+      table.insert(highlights, {
+        start_col = start_col,
+        end_col = start_col + #tab_name,
+        hl_group = (key == active_term) and options.active_tab_hl or options.inactive_tab_hl,
+        term_key = key
+      })
+    end
+  end
+
+  -- Set tab buffer content
+  api_buf_set_lines(tab_buffer, 0, -1, false, { tabs_text })
+
+  -- Apply highlights and add clickable regions
+  for _, hl in ipairs(highlights) do
+    api_buf_add_highlight(tab_buffer, tab_namespace, hl.hl_group, 0, hl.start_col, hl.end_col)
+
+    -- Add clickable functionality
+    vim.api.nvim_buf_set_extmark(tab_buffer, tab_namespace, 0, hl.start_col, {
+      end_col = hl.end_col,
+      hl_group = hl.hl_group,
+      sign_text = "",
+      sign_hl_group = "",
+      virt_text = {},
+      virt_text_pos = "overlay",
+      priority = 100,
+    })
+  end
+
+  -- Close existing tab window if it exists
+  if tab_window and api.nvim_win_is_valid(tab_window) then
+    api.nvim_win_close(tab_window, true)
+    tab_window = nil
+  end
+
+  -- Create a new tab window positioned above the current terminal
+  local current_win = api_get_current_win()
+  local config = {
+    relative = "win",                       -- Posicionar relativo a la ventana actual
+    win = current_win,                      -- Anclar a la ventana actual (la terminal)
+    width = api_win_get_width(current_win), -- Usar el ancho de la ventana de la terminal
+    height = options.tab_height,            -- Altura de las pestañas
+    row = -options.tab_height,              -- Colocar justo encima de la terminal
+    col = 0,                                -- Alinear a la izquierda
+    style = "minimal",
+    focusable = false,
+    noautocmd = true,
+  }
+  tab_window = api_open_win(tab_buffer, false, config)
+
+  -- Set window options
+  vim.wo[tab_window].winhl = "Normal:TabLine"
+  vim.wo[tab_window].cursorline = false
+  vim.wo[tab_window].foldenable = false
+  vim.wo[tab_window].signcolumn = "no"
+  vim.wo[tab_window].statuscolumn = ""
+end
 
 --- Configuration
 ---@param user_options UserOptions | nil
@@ -66,16 +181,22 @@ function M.setup(user_options)
     pattern = options.prefix .. "*",
     callback = function()
       local bufname = fn.bufname("%")
+      vim.keymap.del(
+        { "t" },
+        "<C-" .. terms[bufname].index .. ">"
+      )
       terms[bufname] = nil
+      vim.defer_fn(function()
+        update_term_tabs()
+      end, 10)
     end,
   })
 
-  -- FileType handler
+  -- FileType handler for terminal buffers
   api_create_autocmd("FileType", {
     group = group,
     pattern = { ft },
     callback = function()
-      -- Use predefined table to avoid creating multiple tables per call
       local opts = {
         swapfile = false,
         buflisted = false,
@@ -85,13 +206,78 @@ function M.setup(user_options)
         scl = "no",
         statuscolumn = "",
       }
-
       for key, value in pairs(opts) do
         vim.opt_local[key] = value
       end
-
       vim.bo.buflisted = false
       startinsert()
+      update_term_tabs()
+      vim.keymap.set('t', options.new_tab_mapping, function()
+        M.open(term_current)
+        term_current = term_current + 1
+      end, { buffer = true })
+    end,
+  })
+
+  -- Tabs buffer filetype handler
+  api_create_autocmd("FileType", {
+    group = group,
+    pattern = "better_term_tabs",
+    callback = function()
+      local opts = {
+        swapfile = false,
+        buflisted = false,
+        relativenumber = false,
+        number = false,
+        readonly = false,
+        modifiable = true,
+        scl = "no",
+        statuscolumn = "",
+      }
+      for key, value in pairs(opts) do
+        vim.opt_local[key] = value
+      end
+    end,
+  })
+
+  -- Update terminal tabs on window resize
+  api_create_autocmd("VimResized", {
+    group = group,
+    callback = function()
+      if tab_window and api.nvim_win_is_valid(tab_window) then
+        api.nvim_win_set_config(tab_window, {
+          width = api_win_get_width(api_get_current_win()),
+        })
+        update_term_tabs()
+      end
+    end,
+  })
+
+  -- Show tabs when entering terminal buffer, hide when leaving to non-terminal buffer
+  api_create_autocmd("BufEnter", {
+    group = group,
+    pattern = "*",
+    callback = function()
+      if vim.bo.ft == ft then
+        update_term_tabs()
+      else
+        if tab_window and api.nvim_win_is_valid(tab_window) then
+          api.nvim_win_close(tab_window, true)
+          tab_window = nil
+        end
+      end
+    end,
+  })
+
+  -- Hide tabs when leaving terminal buffer
+  api_create_autocmd("BufLeave", {
+    group = group,
+    pattern = options.prefix .. "*",
+    callback = function()
+      if tab_window and api.nvim_win_is_valid(tab_window) then
+        api.nvim_win_close(tab_window, true)
+        tab_window = nil
+      end
     end,
   })
 
@@ -116,12 +302,27 @@ end
 --- Insert new terminal configuration
 ---@param bufname string
 ---@return string
-local function insert_new_term_config(bufname)
+local function insert_new_term_config(bufname, index)
   terms[bufname] = {
     jobid = -1,
     bufid = -1,
     tabpage = 0,
+    index = index,
   }
+  vim.keymap.set(
+    { "t" },
+    options.jump_tab_mapping:gsub("$tab", index),
+    function()
+      if vim.bo.ft == ft then
+        local bufname = fn.bufname("%")
+        local key = get_term_key(index)
+        if key ~= bufname then
+          M.open(index)
+        end
+      end
+    end,
+    { desc = "Ir a terminal #" .. i, silent = true }
+  )
   return bufname
 end
 
@@ -167,6 +368,7 @@ local function show_term(key_term, tabpage)
   cmd(open_buf .. term.bufid)
   resize_terminal()
   startinsert()
+  update_term_tabs()
 end
 
 --- Create new terminal
@@ -202,12 +404,14 @@ local function create_new_term(key_term, tabpage, opts)
   cmd.file(key_term)
   term.bufid = api_buf_get_number(0)
   term.jobid = vim.b.terminal_job_id
+  update_term_tabs()
 end
 
 --- Hide current terminal in tab
 local function hide_current_term_in_tab(index)
   if vim.bo.ft == ft then
     api_win_hide(0)
+    update_term_tabs()
     return
   end
 
@@ -221,6 +425,7 @@ local function hide_current_term_in_tab(index)
   for i = 1, #wins do
     if api_win_get_buf(wins[i]) == term.bufid then
       api_win_hide(wins[i])
+      update_term_tabs()
       return
     end
   end
@@ -231,12 +436,14 @@ end
 ---@return string
 local function create_term_key(index)
   local default = options.prefix .. "1"
+  i = 1
   if type(index) == "number" then
+    i = index
     index = get_term_key(index) or default
   else
     index = index or default
   end
-  return terms[index] and index or insert_new_term_config(index)
+  return terms[index] and index or insert_new_term_config(index, i)
 end
 
 ---@class BetterTermOpenOptions
@@ -257,6 +464,11 @@ function M.open(index, opts)
       show_term(index, current_tab)
     else
       api_win_hide(bufinfo.windows[1])
+      -- Hide tab window if it exists
+      if tab_window then
+        api.nvim_win_close(tab_window, true)
+        tab_window = nil
+      end
       if current_tab ~= term.tabpage then
         hide_current_term_in_tab(index)
         show_term(index, current_tab)
@@ -302,11 +514,6 @@ function M.send(cmd, num, press)
     current_term = terms[key_term]
   end
 
-  if not api_buf_is_valid(current_term.bufid) then
-    api_chan_send(current_term.jobid, cmd .. "\n")
-    return
-  end
-
   -- Initialize termcodes if needed
   init_termcodes()
 
@@ -347,6 +554,18 @@ function M.select()
       print("Term not valid")
     end
   end)
+end
+
+--- Toggle tab visibility
+function M.toggle_tabs()
+  options.show_tabs = not options.show_tabs
+
+  if not options.show_tabs and tab_window and api.nvim_win_is_valid(tab_window) then
+    api.nvim_win_close(tab_window, true)
+    tab_window = nil
+  elseif options.show_tabs then
+    update_term_tabs()
+  end
 end
 
 return M

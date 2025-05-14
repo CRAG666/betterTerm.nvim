@@ -2,6 +2,8 @@
 
 <h4 align='center'>🔥 The improved vscode terminal for Neovim written in pure lua 🔥</h4>
 
+![Image](https://github.com/user-attachments/assets/2a8323a8-f97d-4493-a834-1bc17b774336)
+
 https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-9e85-2b2cbe5287f6.mp4
 
 # Introduction
@@ -9,7 +11,7 @@ https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-
 I like the concept of vscode terminal, if you are like me, this complement will be the best of your options.
 Normally I like to stay inside the editor, if I can make coffee in the editor, believe me I would do it. So having an integrated terminal is the most sensible option, however I tried for a long time to use the integrated terminal of neovim and I didn't get used to write so much to do what I wanted, so I tried and tried plugins, which were not for me, I just wanted something simple and usable, without so many complications. Then as other times I started to program and from that Saturday afternoon came out this plugin. I hope you enjoy it and make all your PR's.
 
-By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 352 lines!!!.
+By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 572 lines!!!.
 
 https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
 
@@ -48,6 +50,7 @@ require('betterTerm').setup()
 
 #### Features
 
+- Tabs bar
 - Toggle term
 - Multi term
 - Close the terminal as always, no rare mapping were added, just use :q! to close
@@ -108,9 +111,15 @@ require('betterTerm').setup {
 ```lua
 require('betterTerm').setup {
   prefix = "Term_",
-  startInserted = true,
   position = "bot",
-  size = 18
+  size = 18,
+  startInserted = true,
+  show_tabs = true,
+  tab_height = 1,               -- Height of the tabs bar
+  active_tab_hl = "TabLineSel", -- Highlight group for active tab
+  inactive_tab_hl = "TabLine",  -- Highlight group for inactive tabs
+  new_tab_mapping = "<C-t>",  -- Mapping for create new terminal
+  jump_tab_mapping = "<C-$tab>" -- Mapping for jump to tab terminal
 }
 ```
 
