@@ -55,6 +55,7 @@ local startinsert = function() end
 
 -- Terminal key cache to reduce repeated string formatting
 local term_key_cache = {}
+local keys_cache = {}
 
 ---@class UserOptions
 ---@field prefix string Prefix used to identify created terminals
@@ -70,6 +71,15 @@ local term_key_cache = {}
 local function update_term_tabs()
   if not options.show_tabs then return end
 
+  local keys = vim.tbl_keys(terms)
+  if vim.tbl_isempty(keys) then
+    if tab_buffer and api_buf_is_valid(tab_buffer) then
+      api.nvim_buf_delete(tab_buffer, { force = true })
+      tab_buffer = nil
+    end
+    return
+  end
+
   -- Create tab buffer if it doesn't exist
   if not tab_buffer or not api_buf_is_valid(tab_buffer) then
     tab_buffer = api_create_buf(false, true)
@@ -80,12 +90,13 @@ local function update_term_tabs()
 
   -- Collect terminal information
   local tab_content = {}
-  local keys = vim.tbl_keys(terms)
   table.sort(keys, function(a, b)
     local num_a = tonumber(string.match(a, "%d+"))
     local num_b = tonumber(string.match(b, "%d+"))
     return num_a < num_b
   end)
+
+  keys_cache = keys
 
   -- Create tab content
   local tabs_text = "  "
@@ -97,11 +108,11 @@ local function update_term_tabs()
     active_term = fn.bufname("%")
   end
 
-  for i, key in ipairs(keys) do
+  for _, key in ipairs(keys) do
     local term = terms[key]
     if api_buf_is_valid(term.bufid) then
       -- Format: [1] Term_1  [2] Term_2
-      local tab_name = string.format("[%d] %s", i, key)
+      local tab_name = string.format("%s", key)
       local start_col = #tabs_text
       tabs_text = tabs_text .. tab_name .. "  "
 
@@ -152,126 +163,13 @@ local function update_term_tabs()
   vim.wo[tab_window].statuscolumn = ""
 end
 
---- Configuration
----@param user_options UserOptions | nil
-function M.setup(user_options)
-  if user_options then
-    options = vim.tbl_deep_extend("force", options, user_options)
+local function indexOf(tbl, value)
+  for i, v in ipairs(tbl) do
+    if v == value then
+      return i
+    end
   end
-
-  startinsert = options.startInserted and cmd.startinsert or function() end
-  open_buf = options.position .. " sb "
-  pos = options.position
-
-  local group = api_create_augroup("BetterTerm", { clear = true })
-
-  api_create_autocmd("BufWipeout", {
-    group = group,
-    pattern = options.prefix .. "*",
-    callback = function()
-      local bufname = fn.bufname("%")
-      vim.keymap.del(
-        { "t" },
-        "<C-" .. terms[bufname].index .. ">"
-      )
-      terms[bufname] = nil
-      vim.defer_fn(function()
-        update_term_tabs()
-      end, 10)
-    end,
-  })
-
-  -- FileType handler for terminal buffers
-  api_create_autocmd("FileType", {
-    group = group,
-    pattern = { ft },
-    callback = function()
-      local opts = {
-        swapfile = false,
-        buflisted = false,
-        relativenumber = false,
-        number = false,
-        readonly = true,
-        scl = "no",
-        statuscolumn = "",
-      }
-      for key, value in pairs(opts) do
-        vim.opt_local[key] = value
-      end
-      vim.bo.buflisted = false
-      startinsert()
-      update_term_tabs()
-      vim.keymap.set('t', options.new_tab_mapping, function()
-        M.open(term_current)
-        term_current = term_current + 1
-      end, { buffer = true })
-    end,
-  })
-
-  -- Tabs buffer filetype handler
-  api_create_autocmd("FileType", {
-    group = group,
-    pattern = "better_term_tabs",
-    callback = function()
-      local opts = {
-        swapfile = false,
-        buflisted = false,
-        relativenumber = false,
-        number = false,
-        readonly = false,
-        modifiable = true,
-        scl = "no",
-        statuscolumn = "",
-      }
-      for key, value in pairs(opts) do
-        vim.opt_local[key] = value
-      end
-    end,
-  })
-
-  -- Update terminal tabs on window resize
-  api_create_autocmd("VimResized", {
-    group = group,
-    callback = function()
-      if tab_window and api.nvim_win_is_valid(tab_window) then
-        api.nvim_win_set_config(tab_window, {
-          width = api_win_get_width(api_get_current_win()),
-        })
-        update_term_tabs()
-      end
-    end,
-  })
-
-  -- Show tabs when entering terminal buffer, hide when leaving to non-terminal buffer
-  api_create_autocmd("BufEnter", {
-    group = group,
-    pattern = "*",
-    callback = function()
-      if vim.bo.ft == ft then
-        update_term_tabs()
-      else
-        if tab_window and api.nvim_win_is_valid(tab_window) then
-          api.nvim_win_close(tab_window, true)
-          tab_window = nil
-        end
-      end
-    end,
-  })
-
-  -- Hide tabs when leaving terminal buffer
-  api_create_autocmd("BufLeave", {
-    group = group,
-    pattern = options.prefix .. "*",
-    callback = function()
-      if tab_window and api.nvim_win_is_valid(tab_window) then
-        api.nvim_win_close(tab_window, true)
-        tab_window = nil
-      end
-    end,
-  })
-
-  -- Initialize term_key cache
-  term_key_cache = {}
+  return nil
 end
 
 --- Generate terminal key
@@ -286,6 +184,12 @@ local function get_term_key(num)
   end
 
   return term_key_cache[num]
+end
+
+local function smooth_open(term_key)
+  local term = terms[term_key]
+  term.tabpage = api_get_current_tabpage()
+  cmd.b(term.bufid)
 end
 
 --- Insert new terminal configuration
@@ -306,7 +210,7 @@ local function insert_new_term_config(bufname, index)
         local bufname = fn.bufname("%")
         local key = get_term_key(index)
         if key ~= bufname then
-          M.open(index)
+          smooth_open(key)
         end
       end
     end,
@@ -357,20 +261,20 @@ local function show_term(key_term, tabpage)
   cmd(open_buf .. term.bufid)
   resize_terminal()
   startinsert()
-  update_term_tabs()
 end
 
---- Create new terminal
 ---@param key_term string
 ---@param tabpage number
+---@param cmd_buf string
 ---@param opts? BetterTermOpenOptions
-local function create_new_term(key_term, tabpage, opts)
+local function smooth_new_terminal(key_term, tabpage, cmd_buf, opts)
   local term = terms[key_term]
   term.tabpage = tabpage
   opts = opts or {}
+  cmd_buf = cmd_buf or "b"
 
   local buf = api_create_buf(true, false)
-  cmd(open_buf .. buf)
+  cmd(cmd_buf .. buf)
 
   -- Optimized: more efficient directory verification
   if opts.cwd and opts.cwd ~= "." then
@@ -388,11 +292,19 @@ local function create_new_term(key_term, tabpage, opts)
   end
 
   cmd.terminal()
-  resize_terminal()
   vim.bo.ft = ft
   cmd.file(key_term)
   term.bufid = api_buf_get_number(0)
   term.jobid = vim.b.terminal_job_id
+end
+
+--- Create new terminal
+---@param key_term string
+---@param tabpage number
+---@param opts? BetterTermOpenOptions
+local function create_new_term(key_term, tabpage, opts)
+  smooth_new_terminal(key_term, tabpage, open_buf, opts)
+  resize_terminal()
   update_term_tabs()
 end
 
@@ -400,7 +312,6 @@ end
 local function hide_current_term_in_tab(index)
   if vim.bo.ft == ft then
     api_win_hide(0)
-    update_term_tabs()
     return
   end
 
@@ -414,7 +325,6 @@ local function hide_current_term_in_tab(index)
   for i = 1, #wins do
     if api_win_get_buf(wins[i]) == term.bufid then
       api_win_hide(wins[i])
-      update_term_tabs()
       return
     end
   end
@@ -530,7 +440,7 @@ function M.select()
     return
   end
 
-  local keys = vim.tbl_keys(terms)
+  local keys = keys_cache
   vim.ui.select(keys, {
     prompt = "Select a Term",
     format_item = function(term)
@@ -555,6 +465,134 @@ function M.toggle_tabs()
   elseif options.show_tabs then
     update_term_tabs()
   end
+end
+
+--- Configuration
+---@param user_options UserOptions | nil
+function M.setup(user_options)
+  if user_options then
+    options = vim.tbl_deep_extend("force", options, user_options)
+  end
+
+  startinsert = options.startInserted and cmd.startinsert or function() end
+  open_buf = options.position .. " sb "
+  pos = options.position
+
+  local group = api_create_augroup("BetterTerm", { clear = true })
+
+  api_create_autocmd("BufWipeout", {
+    group = group,
+    pattern = options.prefix .. "*",
+    callback = function()
+      local bufname = fn.bufname("%")
+      vim.keymap.del({ 't' }, tostring(options.jump_tab_mapping:gsub("$tab", terms[bufname].index)))
+      local keys = keys_cache
+      local index = indexOf(keys, bufname)
+      terms[bufname] = nil
+      vim.defer_fn(function()
+        if index and index > 1 then
+          M.open(keys[index - 1])
+        elseif index and #keys > 1 and index == 1 then
+          M.open(keys[index + 1])
+        else
+          update_term_tabs()
+        end
+      end, 10)
+    end,
+  })
+
+  -- FileType handler for terminal buffers
+  api_create_autocmd("FileType", {
+    group = group,
+    pattern = { ft },
+    callback = function()
+      local opts = {
+        swapfile = false,
+        buflisted = false,
+        relativenumber = false,
+        number = false,
+        readonly = true,
+        scl = "no",
+        statuscolumn = "",
+      }
+      for key, value in pairs(opts) do
+        vim.opt_local[key] = value
+      end
+      vim.bo.buflisted = false
+      startinsert()
+      vim.keymap.set('t', options.new_tab_mapping, function()
+        key_term = create_term_key(term_current)
+        smooth_new_terminal(key_term, api_get_current_tabpage(), nil, opts)
+        update_term_tabs()
+        term_current = term_current + 1
+      end, { buffer = true })
+    end,
+  })
+
+  -- Tabs buffer filetype handler
+  api_create_autocmd("FileType", {
+    group = group,
+    pattern = "better_term_tabs",
+    callback = function()
+      local opts = {
+        swapfile = false,
+        buflisted = false,
+        relativenumber = false,
+        number = false,
+        readonly = false,
+        modifiable = true,
+        scl = "no",
+        statuscolumn = "",
+      }
+      for key, value in pairs(opts) do
+        vim.opt_local[key] = value
+      end
+    end,
+  })
+
+  -- Update terminal tabs on window resize
+  api_create_autocmd("VimResized", {
+    group = group,
+    callback = function()
+      if tab_window and api.nvim_win_is_valid(tab_window) then
+        api.nvim_win_set_config(tab_window, {
+          width = api_win_get_width(api_get_current_win()),
+        })
+        update_term_tabs()
+      end
+    end,
+  })
+
+  -- Show tabs when entering terminal buffer, hide when leaving to non-terminal buffer
+  api_create_autocmd("BufEnter", {
+    group = group,
+    pattern = "*",
+    callback = function()
+      if vim.bo.ft == ft then
+        update_term_tabs()
+      else
+        if tab_window and api.nvim_win_is_valid(tab_window) then
+          api.nvim_win_close(tab_window, true)
+          tab_window = nil
+        end
+      end
+    end,
+  })
+
+  -- Hide tabs when leaving terminal buffer
+  api_create_autocmd("BufLeave", {
+    group = group,
+    pattern = options.prefix .. "*",
+    callback = function()
+      if tab_window and api.nvim_win_is_valid(tab_window) then
+        api.nvim_win_close(tab_window, true)
+        tab_window = nil
+      end
+    end,
+  })
+
+  -- Initialize term_key cache
+  term_key_cache = {}
 end
 
 return M
