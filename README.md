@@ -51,6 +51,7 @@ require('betterTerm').setup()
 ### Features
 
 - Tabs bar
+- Mouse support
 - Toggle term
 - Multi term
 - Close the terminal as always, no rare mapping were added, just use :q! to close
@@ -75,16 +76,6 @@ local betterTerm = require('betterTerm')
 vim.keymap.set({"n", "t"}, "<C-;>", betterTerm.open, { desc = "Open terminal"})
 -- Select term focus
 vim.keymap.set({"n"}, "<leader>tt", betterTerm.select, { desc = "Select terminal"})
--- Create new term
-local current = 2
-vim.keymap.set(
-    {"n"}, "<leader>tn",
-    function()
-        betterTerm.open(current)
-        current = current + 1
-    end,
-    { desc = "New terminal"}
-)
 ```
 
 ### Options
