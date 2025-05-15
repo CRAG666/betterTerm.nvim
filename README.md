@@ -11,7 +11,7 @@ https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-
 I like the concept of vscode terminal, if you are like me, this complement will be the best of your options.
 Normally I like to stay inside the editor, if I can make coffee in the editor, believe me I would do it. So having an integrated terminal is the most sensible option, however I tried for a long time to use the integrated terminal of neovim and I didn't get used to write so much to do what I wanted, so I tried and tried plugins, which were not for me, I just wanted something simple and usable, without so many complications. Then as other times I started to program and from that Saturday afternoon came out this plugin. I hope you enjoy it and make all your PR's.
 
-By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 572 lines!!!.
+By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 548 lines!!!.
 
 https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
 
@@ -128,7 +128,7 @@ Integration with [code_runner.nvim](https://github.com/CRAG666/code_runner.nvim)
 #### My lazy.nvim config
 
 ```lua
-local current = 2
+local current = 0
 return {
   'CRAG666/betterTerm.nvim',
   keys = {
@@ -144,7 +144,7 @@ return {
       mode = { 'n', 't' },
       '<C-/>',
       function()
-        require('betterTerm').open(2)
+        require('betterTerm').open(1)
       end,
       desc = 'Open terminal',
     },
