@@ -15,11 +15,11 @@ By the way, it's called betterTerm, because it's the best for me. But for you it
 
 https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
 
-### Requirements
+## Requirements
 
 - Neovim (>= 0.10)
 
-### Install
+## Install
 
 - With [Lazy](https://github.com/folke/lazy.nvim)
 
@@ -40,7 +40,7 @@ use { 'CRAG666/betterTerm.nvim' }
 ```
 
 
-### Quick start
+## Quick start
 
 Add the following line to your init.lua(If not use *Lazy*)
 
@@ -48,7 +48,7 @@ Add the following line to your init.lua(If not use *Lazy*)
 require('betterTerm').setup()
 ```
 
-#### Features
+### Features
 
 - Tabs bar
 - Toggle term
@@ -125,6 +125,52 @@ require('betterTerm').setup {
 
 Integration with [code_runner.nvim](https://github.com/CRAG666/code_runner.nvim), see for more info.
 
+#### My lazy.nvim config
+
+```lua
+local current = 2
+return {
+  'CRAG666/betterTerm.nvim',
+  keys = {
+    {
+      mode = { 'n', 't' },
+      '<C-;>',
+      function()
+        require('betterTerm').open()
+      end,
+      desc = 'Open terminal',
+    },
+    {
+      mode = { 'n', 't' },
+      '<C-/>',
+      function()
+        require('betterTerm').open(2)
+      end,
+      desc = 'Open terminal',
+    },
+    {
+      '<leader>tt',
+      function()
+        require('betterTerm').select()
+      end,
+      desc = 'Select terminal',
+    },
+    {
+      '<leader>ti',
+      function()
+        require('betterTerm').open(current)
+        current = current + 1
+      end,
+      desc = 'Init new terminal',
+    },
+  },
+  opts = {
+    position = 'bot',
+    size = 20,
+    jump_tab_mapping = "<A-$tab>"
+  },
+}
+```
 
 # Contributing
 
