@@ -1,44 +1,57 @@
-UserOptions                                                        *UserOptions*
+BetterTermOpenOptions                                    *BetterTermOpenOptions*
 
     Fields: ~
-        {prefix}         (string)   Prefix used to identify the terminals created
-        {position}       (string)   Terminal window position
-        {size}           (string)   Window size
-        {startInserted}  (boolean)  Start in insert mode
+        {cwd?}  (string)
 
 
-M.setup({user_options})                                                *M.setup*
-     Set user options
+M.open({index}, {opts?})                                                *M.open*
+     Open/focus/create terminal, if terminal is already open, hide it
 
     Parameters: ~
-        {user_options}  (UserOptions|nil)  Table of options
-
-
-M.open({index})                                                         *M.open*
-     Show or hide Term
-
-    Parameters: ~
-        {index}  (string|number|nil)  Terminal id
-
+        {index}  (string|number|nil)
+        {opts?}  (BetterTermOpenOptions)
 
 Press                                                                    *Press*
 
     Fields: ~
-        {clean}      (boolean)  Enable <C-l> key for clean
-        {interrupt}  (boolean)  Enable <C-c> key for close current comand
+        {clean}      (boolean)
+        {interrupt}  (boolean)
 
 
-M.send({cmd}, {num}, {press})                                           *M.send*
-     Send command to Term
+M.send({command}, {num}, {press})                                       *M.send*
+     Send command to terminal
 
     Parameters: ~
-        {cmd}    (string)      Command to execute
-        {num}    (number|nil)  Terminal id
-        {press}  (Press|nil)   Key to pressesd before execute command
+        {command}  (string)
+        {num}      (number|nil)
+        {press}    (Press|nil)
 
 
 M.select()                                                            *M.select*
-     Select term and show or hide
+     Select terminal opened
+
+
+UserOptions                                                        *UserOptions*
+
+    Fields: ~
+        {prefix}            (string)
+        {position}          (string)
+        {size}              (string)
+        {startInserted}     (boolean)
+        {show_tabs}         (boolean)
+        {new_tab_mapping}   (string)
+        {jump_tab_mapping}  (string)
+        {active_tab_hl}     (string)
+        {inactive_tab_hl}   (string)
+        {new_tab_hl}        (string)
+        {new_tab_icon}      (string)
+
+
+M.setup({user_options})                                                *M.setup*
+     Configuration
+
+    Parameters: ~
+        {user_options}  (UserOptions|nil)
 
 
 vim:tw=78:ts=8:noet:ft=help:norl:
