@@ -1,38 +1,37 @@
-local api = vim.api
-local fn = vim.fn
-local cmd = vim.cmd
-local uv = vim.uv
+local api, fn, cmd, uv = vim.api, vim.fn, vim.cmd, vim.uv
 
--- Cache of most frequently used API functions to avoid repeated lookups
-local api_buf_get_name = api.nvim_buf_get_name
-local api_create_augroup = api.nvim_create_augroup
-local api_create_autocmd = api.nvim_create_autocmd
-local api_get_current_win = api.nvim_get_current_win
-local api_get_current_tabpage = api.nvim_get_current_tabpage
-local api_buf_is_valid = api.nvim_buf_is_valid
-local api_win_set_width = api.nvim_win_set_width
-local api_win_set_height = api.nvim_win_set_height
-local api_win_get_width = api.nvim_win_get_width
-local api_win_get_height = api.nvim_win_get_height
-local api_win_hide = api.nvim_win_hide
-local api_tabpage_list_wins = api.nvim_tabpage_list_wins
-local api_win_get_buf = api.nvim_win_get_buf
-local api_create_buf = api.nvim_create_buf
-local api_buf_get_number = api.nvim_buf_get_number
-local api_tabpage_is_valid = api.nvim_tabpage_is_valid
-local api_chan_send = api.nvim_chan_send
-local api_replace_termcodes = api.nvim_replace_termcodes
-local api_buf_delete = api.nvim_buf_delete
-local api_win_is_valid = api.nvim_win_is_valid
-local api_win_close = api.nvim_win_close
+-- Cached API functions
+local api_funcs = {
+  buf_get_name = api.nvim_buf_get_name,
+  create_augroup = api.nvim_create_augroup,
+  create_autocmd = api.nvim_create_autocmd,
+  get_current_win = api.nvim_get_current_win,
+  get_current_tabpage = api.nvim_get_current_tabpage,
+  buf_is_valid = api.nvim_buf_is_valid,
+  win_set_width = api.nvim_win_set_width,
+  win_set_height = api.nvim_win_set_height,
+  win_get_width = api.nvim_win_get_width,
+  win_get_height = api.nvim_win_get_height,
+  win_hide = api.nvim_win_hide,
+  tabpage_list_wins = api.nvim_tabpage_list_wins,
+  win_get_buf = api.nvim_win_get_buf,
+  create_buf = api.nvim_create_buf,
+  buf_get_number = api.nvim_buf_get_number,
+  tabpage_is_valid = api.nvim_tabpage_is_valid,
+  chan_send = api.nvim_chan_send,
+  replace_termcodes = api.nvim_replace_termcodes,
+  buf_delete = api.nvim_buf_delete,
+  win_is_valid = api.nvim_win_is_valid,
+  win_close = api.nvim_win_close,
+}
 
 -- Global state
 local terms = {}
 local ft = "better_term"
 local term_current = 0
-local last_winbar_text = nil -- Cache for last winbar text
+local last_winbar_text = nil
 
--- Default configuration options
+-- Default configuration
 local options = {
   prefix = "Term_",
   position = "bot",
@@ -41,96 +40,73 @@ local options = {
   show_tabs = true,
   new_tab_mapping = "<C-t>",
   jump_tab_mapping = "<C-$tab>",
-  active_tab_hl = "TabLineSel",    -- Highlight group for active tab
-  inactive_tab_hl = "TabLine",     -- Highlight group for inactive tabs
-  new_tab_hl = "BetterTermSymbol", -- Highlight group for new term
-  new_tab_icon = "+"
+  active_tab_hl = "TabLineSel",
+  inactive_tab_hl = "TabLine",
+  new_tab_hl = "BetterTermSymbol",
+  new_tab_icon = "+",
 }
 
 local clickable_new = ""
-
 local M = {}
-
--- Precomputed values
 local open_buf = ""
 local startinsert = function() end
-
--- Caches for performance
 local term_key_cache = {}
 local sorted_keys = {}
-
--- Global namespace for v:lua access
 _G.BetterTerm = _G.BetterTerm or {}
 _G.BetterTerm.switch_funcs = _G.BetterTerm.switch_funcs or {}
 
 --- Get inactive clickable tab string
 ---@param key string
-local function get_inactive_cliclable_tab(key)
-  local tab_name = key
-  local hl_group = options.inactive_tab_hl
-  -- Create a unique function name for this term_key
-  local func_name = "switch_" .. vim.fn.substitute(key, "[^A-Za-z0-9_]", "_", "g")
-  -- Register the wrapper function
-  _G.BetterTerm.switch_funcs[func_name] = function()
-    M.switch_to(key)
-  end
-  -- Create clickable tab using %@ syntax
+local function get_inactive_clickable_tab(key)
+  local func_name = "switch_" .. fn.substitute(key, "[^A-Za-z0-9_]", "_", "g")
+  _G.BetterTerm.switch_funcs[func_name] = function() M.switch_to(key) end
   return string.format(
     "%%#%s#%%@v:lua._G.BetterTerm.switch_funcs.%s@  %s  %%X",
-    hl_group,
+    options.inactive_tab_hl,
     func_name,
-    tab_name
+    key
   )
 end
 
--- Generate winbar with clickable tabs
+--- Generate winbar with clickable tabs
 local function generate_winbar_tabs()
-  if not options.show_tabs or vim.tbl_isempty(terms) then
+  if not options.show_tabs or vim.tbl_isempty(terms) or vim.tbl_isempty(sorted_keys) then
     return ""
   end
 
-  if vim.tbl_isempty(sorted_keys) then
-    return ""
-  end
-
-  -- Build tab content using table for efficiency
-  local tabs_parts = {}
+  local tabs = {}
   local active_term = vim.bo.ft == ft and fn.bufname("%") or nil
-
   for _, key in ipairs(sorted_keys) do
     local term = terms[key]
-    if api_buf_is_valid(term.bufid) then
-      local clickable_tab = term.on_click
+    if api_funcs.buf_is_valid(term.bufid) then
+      local tab = term.on_click
       if key == active_term then
-        clickable_tab = clickable_tab:gsub(options.inactive_tab_hl, options.active_tab_hl)
+        tab = tab:gsub(options.inactive_tab_hl, options.active_tab_hl)
       end
-      table.insert(tabs_parts, clickable_tab)
+      tabs[#tabs + 1] = tab
     end
   end
-  table.insert(tabs_parts, clickable_new)
-  return table.concat(tabs_parts)
+  tabs[#tabs + 1] = clickable_new
+  return table.concat(tabs)
 end
 
--- Update winbar for terminal windows
+--- Update winbar for terminal windows
 local function update_term_winbar()
   if not options.show_tabs then return end
-
   local winbar_text = generate_winbar_tabs()
   if last_winbar_text == winbar_text then return end
   last_winbar_text = winbar_text
 
-  -- Find all terminal windows and update their winbar
-  local cur_tab = api_get_current_tabpage()
-  local wins = api_tabpage_list_wins(cur_tab)
-  for _, win in ipairs(wins) do
-    local buf = api_win_get_buf(win)
+  local cur_tab = api_funcs.get_current_tabpage()
+  for _, win in ipairs(api_funcs.tabpage_list_wins(cur_tab)) do
+    local buf = api_funcs.win_get_buf(win)
     if vim.bo[buf].ft == ft then
       api.nvim_win_set_option(win, "winbar", winbar_text)
     end
   end
 end
 
--- Helper to find index in table
+--- Find index in table
 ---@param tbl table
 ---@param value any
 ---@return number?
@@ -138,23 +114,22 @@ local function indexOf(tbl, value)
   for i, v in ipairs(tbl) do
     if v == value then return i end
   end
-  return nil
 end
 
---- Generate terminal key with caching
+--- Generate terminal key
 ---@param num number
----@return string?
+---@return string
 local function get_term_key(num)
-  if not num then return nil end
-  term_key_cache[num] = term_key_cache[num] or string.format(options.prefix .. "%d", num)
+  if not num then return options.prefix .. "0" end
+  term_key_cache[num] = term_key_cache[num] or (options.prefix .. num)
   return term_key_cache[num]
 end
 
--- Open terminal smoothly
+--- Open terminal
 ---@param term_key string
 ---@param current_tab number?
 local function smooth_open(term_key, current_tab)
-  current_tab = current_tab or api_get_current_tabpage()
+  current_tab = current_tab or api_funcs.get_current_tabpage()
   local term = terms[term_key]
   term.tabpage = current_tab
   cmd.b(term.bufid)
@@ -173,9 +148,9 @@ local function insert_new_term_config(bufname, index)
     bufid = -1,
     tabpage = 0,
     index = index,
-    on_click = get_inactive_cliclable_tab(bufname)
+    on_click = get_inactive_clickable_tab(bufname),
   }
-  table.insert(sorted_keys, bufname)
+  sorted_keys[#sorted_keys + 1] = bufname
   vim.keymap.set(
     { "t" },
     options.jump_tab_mapping:gsub("$tab", index),
@@ -183,7 +158,7 @@ local function insert_new_term_config(bufname, index)
       if vim.bo.ft == ft then
         local bname = fn.bufname("%")
         local key = get_term_key(index)
-        if key ~= bname then smooth_open(key or "") end
+        if key ~= bname then smooth_open(key) end
       end
     end,
     { desc = "Goto BetterTerm #" .. index, silent = true }
@@ -191,10 +166,10 @@ local function insert_new_term_config(bufname, index)
   return bufname
 end
 
--- Cached editor dimensions
+--- Cached editor dimensions
 local editor_dims = { width = 0, height = 0, last_check = 0 }
 
---- Get editor dimensions with caching
+--- Get editor dimensions
 ---@return number, number
 local function get_editor_dimensions()
   local current_time = uv.now()
@@ -208,14 +183,14 @@ end
 
 --- Resize terminal window
 local function resize_terminal()
-  local win = api_get_current_win()
+  local win = api_funcs.get_current_win()
   local editor_width, editor_height = get_editor_dimensions()
-  local win_width, win_height = api_win_get_width(win), api_win_get_height(win)
-  if win_width < editor_width then api_win_set_width(win, options.size) end
-  if win_height < editor_height then api_win_set_height(win, options.size) end
+  local win_width, win_height = api_funcs.win_get_width(win), api_funcs.win_get_height(win)
+  if win_width < editor_width then api_funcs.win_set_width(win, options.size) end
+  if win_height < editor_height then api_funcs.win_set_height(win, options.size) end
 end
 
---- Show terminal with resizing
+--- Show terminal
 ---@param key_term string
 ---@param tabpage number
 local function show_term(key_term, tabpage)
@@ -227,10 +202,10 @@ local function show_term(key_term, tabpage)
   startinsert()
 end
 
-
 ---@class BetterTermOpenOptions
 ---@field cwd? string
 
+--- Create new terminal
 ---@param key_term string
 ---@param tabpage number
 ---@param cmd_buf string | nil
@@ -241,7 +216,7 @@ local function smooth_new_terminal(key_term, tabpage, cmd_buf, opts)
   opts = opts or {}
   cmd_buf = cmd_buf or "b"
 
-  local buf = api_create_buf(true, false)
+  local buf = api_funcs.create_buf(true, false)
   cmd(cmd_buf .. buf)
 
   if opts.cwd and opts.cwd ~= "." then
@@ -261,12 +236,12 @@ local function smooth_new_terminal(key_term, tabpage, cmd_buf, opts)
   cmd.terminal()
   vim.bo.ft = ft
   cmd.file(key_term)
-  term.bufid = api_buf_get_number(0)
+  term.bufid = api_funcs.buf_get_number(0)
   term.jobid = vim.b.terminal_job_id
   update_term_winbar()
 end
 
---- Create a new terminal
+--- Create terminal
 ---@param key_term string
 ---@param tabpage number
 ---@param opts? BetterTermOpenOptions
@@ -275,25 +250,23 @@ local function create_new_term(key_term, tabpage, opts)
   resize_terminal()
 end
 
---- Hide current terminal in tab
+--- Hide terminal in tab
 ---@param index string
----@return nil
 local function hide_current_term_in_tab(index)
   if vim.bo.ft == ft then
-    api_win_hide(0)
+    api_funcs.win_hide(0)
     return
   end
   local term = terms[index]
-  if not api_tabpage_is_valid(term.tabpage) then
+  if not api_funcs.tabpage_is_valid(term.tabpage) then
     term.tabpage = 0
     return
   end
 
-  local wins = api_tabpage_list_wins(term.tabpage)
-  for i = 1, #wins do
-    local bid = api_win_get_buf(wins[i])
+  for _, win in ipairs(api_funcs.tabpage_list_wins(term.tabpage)) do
+    local bid = api_funcs.win_get_buf(win)
     if vim.bo[bid].ft == ft then
-      api_win_hide(wins[i])
+      api_funcs.win_hide(win)
     end
   end
 end
@@ -302,14 +275,9 @@ end
 ---@param index string | number | nil
 ---@return string
 local function create_term_key(index)
+  local i = type(index) == "number" and index or 0
   local default = options.prefix .. "0"
-  local i = 0
-  if type(index) == "number" then
-    i = index
-    index = get_term_key(index) or default
-  else
-    index = index or default
-  end
+  index = type(index) == "number" and get_term_key(index) or (index or default)
   if i >= term_current then term_current = i + 1 end
   return terms[index] and index or insert_new_term_config(index, i)
 end
@@ -320,66 +288,54 @@ end
 function M.open(index, opts)
   index = create_term_key(index)
   local term = terms[index]
-  local cur_tab = api_get_current_tabpage()
+  local cur_tab = api_funcs.get_current_tabpage()
 
   local function switch_tab()
     hide_current_term_in_tab(index)
     show_term(index, cur_tab)
   end
 
-  -- Case: buffer doesn't exist or is no longer valid → create a new one
-  if not (term and api_buf_is_valid(term.bufid)) then
+  if not (term and api_funcs.buf_is_valid(term.bufid)) then
     hide_current_term_in_tab(index)
     return create_new_term(index, cur_tab, opts)
   end
 
   local bufinfo = fn.getbufinfo(term.bufid)[1]
-
-  -- Case: terminal is hidden
   if bufinfo.hidden == 1 then
-    if vim.bo.ft == ft then
-      return smooth_open(index, cur_tab)
-    else
-      return switch_tab()
-    end
+    if vim.bo.ft == ft then return smooth_open(index, cur_tab) end
+    return switch_tab()
   end
 
-  -- Case: terminal is visible → hide it
-  api_win_hide(bufinfo.windows[1])
-
-  -- If we're in another tab, show it there
-  if cur_tab ~= term.tabpage then
-    switch_tab()
-  end
+  api_funcs.win_hide(bufinfo.windows[1])
+  if cur_tab ~= term.tabpage then switch_tab() end
 end
 
--- Clickable winbar callback to switch to a terminal
+--- Switch to terminal
 function M.switch_to(term_key)
   smooth_open(term_key)
 end
 
--- Clickable winbar callback to create a new terminal
+--- Create new terminal from winbar
 local function new_term_from_winbar()
   local key_term = create_term_key(term_current)
-  smooth_new_terminal(key_term, api_get_current_tabpage(), nil, {})
+  smooth_new_terminal(key_term, api_funcs.get_current_tabpage(), nil, {})
   update_term_winbar()
 end
-
--- Register new_term_from_winbar in global namespace
 _G.BetterTerm.new_term_from_winbar = new_term_from_winbar
 
 ---@class Press
 ---@field clean boolean
 ---@field interrupt boolean
 
--- Precompiled termcodes
-local termcodes = { ctrl_c = nil, ctrl_l = nil, ctrl_c_l = nil }
+--- Precompiled termcodes
+local termcodes = {}
 
+--- Initialize termcodes
 local function init_termcodes()
   if not termcodes.ctrl_c then
-    termcodes.ctrl_c = api_replace_termcodes("<C-c> ", true, true, true)
-    termcodes.ctrl_l = api_replace_termcodes("<C-l> ", true, true, true)
-    termcodes.ctrl_c_l = api_replace_termcodes("<C-c> <C-l> ", true, true, true)
+    termcodes.ctrl_c = api_funcs.replace_termcodes("<C-c> ", true, true, true)
+    termcodes.ctrl_l = api_funcs.replace_termcodes("<C-l> ", true, true, true)
+    termcodes.ctrl_c_l = api_funcs.replace_termcodes("<C-c> <C-l> ", true, true, true)
   end
 end
 
@@ -402,16 +358,16 @@ function M.send(command, num, press)
   if press then
     if press.interrupt and press.clean then
       uv.sleep(100)
-      api_chan_send(current_term.jobid, termcodes.ctrl_c_l)
+      api_funcs.chan_send(current_term.jobid, termcodes.ctrl_c_l)
     elseif press.interrupt then
       uv.sleep(100)
-      api_chan_send(current_term.jobid, termcodes.ctrl_c)
+      api_funcs.chan_send(current_term.jobid, termcodes.ctrl_c)
     elseif press.clean then
       uv.sleep(100)
-      api_chan_send(current_term.jobid, termcodes.ctrl_l)
+      api_funcs.chan_send(current_term.jobid, termcodes.ctrl_l)
     end
   end
-  api_chan_send(current_term.jobid, command .. "\n")
+  api_funcs.chan_send(current_term.jobid, command .. "\n")
 end
 
 --- Select terminal
@@ -420,8 +376,7 @@ function M.select()
     print("Empty betterTerm's")
     return
   end
-  local keys = sorted_keys
-  vim.ui.select(keys, {
+  vim.ui.select(sorted_keys, {
     prompt = "Select a Term",
     format_item = function(term) return term end,
   }, function(term)
@@ -435,12 +390,11 @@ function M.toggle_tabs()
   if options.show_tabs then
     update_term_winbar()
   else
-    -- Remove winbar from all terminal windows
     for _, term in pairs(terms) do
       local bufinfo = fn.getbufinfo(term.bufid)[1]
       if bufinfo and not bufinfo.hidden then
         for _, win in ipairs(bufinfo.windows) do
-          if api_win_is_valid(win) then
+          if api_funcs.win_is_valid(win) then
             api.nvim_win_set_option(win, "winbar", "")
           end
         end
@@ -450,17 +404,17 @@ function M.toggle_tabs()
 end
 
 ---@class UserOptions
----@field prefix string Prefix used to identify created terminals
----@field position string Terminal window position
----@field size string Window size
----@field startInserted boolean Start in insert mode
----@field show_tabs boolean Show terminal tabs
----@field new_tab_mapping string New tab mapping
----@field jump_tab_mapping string Jump to tab mapping
----@field active_tab_hl string Highlight group for active tab
----@field inactive_tab_hl string Highlight group for inactive tabs
----@field new_tab_hl string Highlight group for new term
----@field new_tab_icon string New tab icon
+---@field prefix string
+---@field position string
+---@field size string
+---@field startInserted boolean
+---@field show_tabs boolean
+---@field new_tab_mapping string
+---@field jump_tab_mapping string
+---@field active_tab_hl string
+---@field inactive_tab_hl string
+---@field new_tab_hl string
+---@field new_tab_icon string
 
 --- Configuration
 ---@param user_options UserOptions | nil
@@ -471,21 +425,21 @@ function M.setup(user_options)
   startinsert = options.startInserted and cmd.startinsert or function() end
   open_buf = options.position .. " sb "
 
-  local group = api_create_augroup("BetterTerm", { clear = true })
+  local group = api_funcs.create_augroup("BetterTerm", { clear = true })
 
-  api_create_autocmd("BufWipeout", {
+  api_funcs.create_autocmd("BufWipeout", {
     group = group,
     pattern = options.prefix .. "*",
     callback = function()
       local bufname = fn.bufname("%")
-      vim.keymap.del({ 't' }, tostring(options.jump_tab_mapping:gsub("$tab", terms[bufname].index)))
+      vim.keymap.del({ "t" }, tostring(options.jump_tab_mapping:gsub("$tab", terms[bufname].index)))
       local index = indexOf(sorted_keys, bufname)
       terms[bufname] = nil
       table.remove(sorted_keys, index)
       vim.defer_fn(function()
         if index and index > 1 then
           M.open(sorted_keys[index - 1])
-        elseif index and #sorted_keys >= 1 and index == 1 then
+        elseif index and #sorted_keys >= 1 then
           M.open(sorted_keys[1])
         else
           update_term_winbar()
@@ -494,9 +448,9 @@ function M.setup(user_options)
     end,
   })
 
-  api_create_autocmd("FileType", {
+  api_funcs.create_autocmd("FileType", {
     group = group,
-    pattern = { ft },
+    pattern = ft,
     callback = function()
       local opts = {
         swapfile = false,
@@ -507,14 +461,14 @@ function M.setup(user_options)
         scl = "no",
         statuscolumn = "",
         cursorline = false,
-        cursorcolumn = false
+        cursorcolumn = false,
       }
       for key, value in pairs(opts) do vim.opt_local[key] = value end
       vim.bo.buflisted = false
       startinsert()
-      vim.keymap.set('t', options.new_tab_mapping, function()
+      vim.keymap.set("t", options.new_tab_mapping, function()
         local key_term = create_term_key(term_current)
-        smooth_new_terminal(key_term, api_get_current_tabpage(), nil, {})
+        smooth_new_terminal(key_term, api_funcs.get_current_tabpage(), nil, {})
       end, { buffer = true })
     end,
   })
