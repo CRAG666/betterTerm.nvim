@@ -2,7 +2,7 @@
 
 <h4 align='center'>🔥 The improved vscode terminal for Neovim written in pure lua 🔥</h4>
 
-![Image](https://github.com/user-attachments/assets/2a8323a8-f97d-4493-a834-1bc17b774336)
+![Image](https://github.com/user-attachments/assets/17645559-68c4-4b6e-a048-427954703779)
 
 https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-9e85-2b2cbe5287f6.mp4
 
