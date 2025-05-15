@@ -11,7 +11,7 @@ https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-
 I like the concept of vscode terminal, if you are like me, this complement will be the best of your options.
 Normally I like to stay inside the editor, if I can make coffee in the editor, believe me I would do it. So having an integrated terminal is the most sensible option, however I tried for a long time to use the integrated terminal of neovim and I didn't get used to write so much to do what I wanted, so I tried and tried plugins, which were not for me, I just wanted something simple and usable, without so many complications. Then as other times I started to program and from that Saturday afternoon came out this plugin. I hope you enjoy it and make all your PR's.
 
-By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 548 lines!!!.
+By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 532 lines!!!.
 
 https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
 
@@ -89,10 +89,18 @@ vim.keymap.set(
 
 ### Options
 
-- `prefix`: It is used to create the names and a autocmd(default: `Term_`).
-- `startInserted`: Should the terminal be in insert mode when opened(default: `true`)
-- `position`: Integrated terminal position(for option `:h opening-window`, default: `bot`)
+- `prefix`: It is used to create the names and a autocmd (default: `Term_`).
+- `position`: Integrated terminal position (for option `:h opening-window`, default: `bot`)
 - `size`: Size of the terminal window (default: `18`)
+- `startInserted`: Should the terminal be in insert mode when opened (default: `true`)
+- `show_tabs`: Enable/Disable the tabs bar (default: `true`)
+- `new_tab_mapping`: Mapping for create new terminal (default: `<C-t>`)
+- `jump_tab_mapping`: Mapping for jump to tab terminal (default: `<C-$tab>`)
+- `active_tab_hl`: Highlight group for active tab (default: `TabLineSel`)
+- `inactive_tab_hl`: Highlight group for inactive tabs (default: `TabLine`)
+- `new_tab_hl`: Highlight group for icon new term (default: `BetterTermSymbol`)
+- `new_tab_icon`: Icon for new term (default: `+`)
+
 
 ### Setup
 
@@ -103,6 +111,7 @@ require('betterTerm').setup {
   startInserted = false,
   position = "bot",
   size = 25
+  jump_tab_mapping = "<A-$tab>", -- Alt+1 , Alt+2, ...
 }
 ```
 
@@ -115,11 +124,12 @@ require('betterTerm').setup {
   size = 18,
   startInserted = true,
   show_tabs = true,
-  tab_height = 1,               -- Height of the tabs bar
-  active_tab_hl = "TabLineSel", -- Highlight group for active tab
-  inactive_tab_hl = "TabLine",  -- Highlight group for inactive tabs
-  new_tab_mapping = "<C-t>",  -- Mapping for create new terminal
-  jump_tab_mapping = "<C-$tab>" -- Mapping for jump to tab terminal
+  new_tab_mapping = "<C-t>",      -- Create new terminal
+  jump_tab_mapping = "<C-$tab>",  -- Jump to tab terminal
+  active_tab_hl = "TabLineSel",   -- Highlight group for active tab
+  inactive_tab_hl = "TabLine",    -- Highlight group for inactive tabs
+  new_tab_hl = "BetterTermSymbol" -- Highlight group for new term
+  new_tab_icon = "+"              -- Icon for new term
 }
 ```
 
@@ -128,7 +138,6 @@ Integration with [code_runner.nvim](https://github.com/CRAG666/code_runner.nvim)
 #### My lazy.nvim config
 
 ```lua
-local current = 0
 return {
   'CRAG666/betterTerm.nvim',
   keys = {
@@ -138,7 +147,7 @@ return {
       function()
         require('betterTerm').open()
       end,
-      desc = 'Open terminal',
+      desc = 'Open BetterTerm 0',
     },
     {
       mode = { 'n', 't' },
@@ -146,7 +155,7 @@ return {
       function()
         require('betterTerm').open(1)
       end,
-      desc = 'Open terminal',
+      desc = 'Open BetterTerm 1',
     },
     {
       '<leader>tt',
@@ -154,15 +163,7 @@ return {
         require('betterTerm').select()
       end,
       desc = 'Select terminal',
-    },
-    {
-      '<leader>ti',
-      function()
-        require('betterTerm').open(current)
-        current = current + 1
-      end,
-      desc = 'Init new terminal',
-    },
+    }
   },
   opts = {
     position = 'bot',
