@@ -58,7 +58,8 @@ _G.BetterTerm.switch_funcs = _G.BetterTerm.switch_funcs or {}
 --- Get inactive clickable tab string
 ---@param key string
 local function get_inactive_clickable_tab(key)
-  local func_name = "switch_" .. fn.substitute(key, "[^A-Za-z0-9_]", "_", "g")
+  -- local func_name = "switch_" .. fn.substitute(key, "[^A-Za-z0-9_]", "_", "g")
+  local func_name = "switch_" .. key
   _G.BetterTerm.switch_funcs[func_name] = function() M.switch_to(key) end
   return string.format(
     "%%#%s#%%@v:lua._G.BetterTerm.switch_funcs.%s@  %s  %%X",
