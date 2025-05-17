@@ -433,19 +433,21 @@ function M.setup(user_options)
     pattern = options.prefix .. "*",
     callback = function()
       local bufname = fn.bufname("%")
-      vim.keymap.del({ "t" }, tostring(options.jump_tab_mapping:gsub("$tab", terms[bufname].index)))
-      local index = indexOf(sorted_keys, bufname)
-      terms[bufname] = nil
-      table.remove(sorted_keys, index)
-      vim.defer_fn(function()
-        if index and index > 1 then
-          M.open(sorted_keys[index - 1])
-        elseif index and #sorted_keys >= 1 then
-          M.open(sorted_keys[1])
-        else
-          update_term_winbar()
-        end
-      end, 10)
+      if terms[bufname] then
+        vim.keymap.del({ "t" }, tostring(options.jump_tab_mapping:gsub("$tab", terms[bufname].index)))
+        local index = indexOf(sorted_keys, bufname)
+        terms[bufname] = nil
+        table.remove(sorted_keys, index)
+        vim.defer_fn(function()
+          if index and index > 1 then
+            M.open(sorted_keys[index - 1])
+          elseif index and #sorted_keys >= 1 then
+            M.open(sorted_keys[1])
+          else
+            update_term_winbar()
+          end
+        end, 10)
+      end
     end,
   })
 
