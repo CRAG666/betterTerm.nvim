@@ -431,23 +431,21 @@ function M.setup(user_options)
   api_funcs.create_autocmd("BufWipeout", {
     group = group,
     pattern = options.prefix .. "*",
-    callback = function()
-      local bufname = fn.bufname("%")
-      if terms[bufname] then
-        vim.keymap.del({ "t" }, tostring(options.jump_tab_mapping:gsub("$tab", terms[bufname].index)))
-        local index = indexOf(sorted_keys, bufname)
-        terms[bufname] = nil
-        table.remove(sorted_keys, index)
-        vim.defer_fn(function()
-          if index and index > 1 then
-            M.open(sorted_keys[index - 1])
-          elseif index and #sorted_keys >= 1 then
-            M.open(sorted_keys[1])
-          else
-            update_term_winbar()
-          end
-        end, 10)
-      end
+    callback = function(args)
+      local bufname = fn.bufname(args.buf)
+      vim.keymap.del({ "t" }, tostring(options.jump_tab_mapping:gsub("$tab", terms[bufname].index)))
+      local index = indexOf(sorted_keys, bufname)
+      terms[bufname] = nil
+      table.remove(sorted_keys, index)
+      vim.defer_fn(function()
+        if index and index > 1 then
+          M.open(sorted_keys[index - 1])
+        elseif index and #sorted_keys >= 1 then
+          M.open(sorted_keys[1])
+        else
+          update_term_winbar()
+        end
+      end, 10)
     end,
   })
 
