@@ -25,12 +25,6 @@ local api_funcs = {
   win_close = api.nvim_win_close,
 }
 
--- Global state
-local terms = {}
-local ft = "better_term"
-local term_current = 0
-local last_winbar_text = nil
-
 -- Default configuration
 local options = {
   prefix = "Term_",
@@ -45,6 +39,12 @@ local options = {
   new_tab_hl = "BetterTermSymbol",
   new_tab_icon = "+",
 }
+
+-- Global state
+local terms = {}
+local ft = "better_term"
+local term_current = 0
+local last_winbar_text = nil
 
 local clickable_new = ""
 local M = {}
