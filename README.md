@@ -91,6 +91,7 @@ vim.keymap.set({"n"}, "<leader>tt", betterTerm.select, { desc = "Select terminal
 - `inactive_tab_hl`: Highlight group for inactive tabs (default: `TabLine`)
 - `new_tab_hl`: Highlight group for icon new term (default: `BetterTermSymbol`)
 - `new_tab_icon`: Icon for new term (default: `+`)
+- `index_base`: The starting index number for terminal tabs. (Default: `0`)
 
 
 ### Setup
@@ -115,12 +116,13 @@ require('betterTerm').setup {
   size = 18,
   startInserted = true,
   show_tabs = true,
-  new_tab_mapping = "<C-t>",      -- Create new terminal
-  jump_tab_mapping = "<C-$tab>",  -- Jump to tab terminal
-  active_tab_hl = "TabLineSel",   -- Highlight group for active tab
-  inactive_tab_hl = "TabLine",    -- Highlight group for inactive tabs
-  new_tab_hl = "BetterTermSymbol" -- Highlight group for new term
-  new_tab_icon = "+"              -- Icon for new term
+  new_tab_mapping = "<C-t>",       -- Create new terminal
+  jump_tab_mapping = "<C-$tab>",   -- Jump to tab terminal
+  active_tab_hl = "TabLineSel",    -- Highlight group for active tab
+  inactive_tab_hl = "TabLine",     -- Highlight group for inactive tabs
+  new_tab_hl = "BetterTermSymbol", -- Highlight group for new term
+  new_tab_icon = "+",              -- Icon for new term
+  index_base = 0                   -- Index number for terminals 
 }
 ```
 
