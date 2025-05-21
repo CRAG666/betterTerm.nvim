@@ -38,12 +38,13 @@ local options = {
   inactive_tab_hl = "TabLine",
   new_tab_hl = "BetterTermSymbol",
   new_tab_icon = "+",
+  index_base = 0 
 }
 
 -- Global state
 local terms = {}
 local ft = "better_term"
-local term_current = 0
+local term_current = options.index_base
 local last_winbar_text = nil
 
 local clickable_new = ""
@@ -121,7 +122,7 @@ end
 ---@param num number
 ---@return string
 local function get_term_key(num)
-  if not num then return options.prefix .. "0" end
+  if not num then return options.prefix .. options.index_base end
   term_key_cache[num] = term_key_cache[num] or (options.prefix .. num)
   return term_key_cache[num]
 end
@@ -276,8 +277,8 @@ end
 ---@param index string | number | nil
 ---@return string
 local function create_term_key(index)
-  local i = type(index) == "number" and index or 0
-  local default = options.prefix .. "0"
+  local i = type(index) == "number" and index or options.index_base
+  local default = options.prefix .. options.index_base
   index = type(index) == "number" and get_term_key(index) or (index or default)
   if i >= term_current then term_current = i + 1 end
   return terms[index] and index or insert_new_term_config(index, i)
