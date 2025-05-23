@@ -38,7 +38,7 @@ local options = {
   inactive_tab_hl = "TabLine",
   new_tab_hl = "BetterTermSymbol",
   new_tab_icon = "+",
-  index_base = 0 
+  index_base = 0
 }
 
 -- Global state
