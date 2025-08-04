@@ -23,6 +23,8 @@ local api_funcs = {
   buf_delete = api.nvim_buf_delete,
   win_is_valid = api.nvim_win_is_valid,
   win_close = api.nvim_win_close,
+  win_get_tabpage = api.nvim_win_get_tabpage,
+  win_set_option = api.nvim_win_set_option,
 }
 
 -- Default configuration
@@ -38,7 +40,7 @@ local options = {
   inactive_tab_hl = "TabLine",
   new_tab_hl = "BetterTermSymbol",
   new_tab_icon = "+",
-  index_base = 0
+  index_base = 0,
 }
 
 -- Global state
@@ -61,13 +63,10 @@ _G.BetterTerm.switch_funcs = _G.BetterTerm.switch_funcs or {}
 local function get_inactive_clickable_tab(key)
   -- local func_name = "switch_" .. fn.substitute(key, "[^A-Za-z0-9_]", "_", "g")
   local func_name = "switch_" .. key
-  _G.BetterTerm.switch_funcs[func_name] = function() M.switch_to(key) end
-  return string.format(
-    "%%#%s#%%@v:lua._G.BetterTerm.switch_funcs.%s@  %s  %%X",
-    options.inactive_tab_hl,
-    func_name,
-    key
-  )
+  _G.BetterTerm.switch_funcs[func_name] = function()
+    M.switch_to(key)
+  end
+  return string.format("%%#%s#%%@v:lua._G.BetterTerm.switch_funcs.%s@  %s  %%X", options.inactive_tab_hl, func_name, key)
 end
 
 --- Generate winbar with clickable tabs
@@ -81,11 +80,11 @@ local function generate_winbar_tabs()
   for _, key in ipairs(sorted_keys) do
     local term = terms[key]
     if api_funcs.buf_is_valid(term.bufid) then
-      local tab = term.on_click
       if key == active_term then
-        tab = tab:gsub(options.inactive_tab_hl, options.active_tab_hl)
+        tabs[#tabs + 1] = term.on_click_active
+      else
+        tabs[#tabs + 1] = term.on_click_inactive
       end
-      tabs[#tabs + 1] = tab
     end
   end
   tabs[#tabs + 1] = clickable_new
@@ -94,16 +93,22 @@ end
 
 --- Update winbar for terminal windows
 local function update_term_winbar()
-  if not options.show_tabs then return end
+  if not options.show_tabs then
+    return
+  end
   local winbar_text = generate_winbar_tabs()
-  if last_winbar_text == winbar_text then return end
+  if last_winbar_text == winbar_text then
+    return
+  end
   last_winbar_text = winbar_text
 
   local cur_tab = api_funcs.get_current_tabpage()
-  for _, win in ipairs(api_funcs.tabpage_list_wins(cur_tab)) do
-    local buf = api_funcs.win_get_buf(win)
-    if vim.bo[buf].ft == ft then
-      api.nvim_win_set_option(win, "winbar", winbar_text)
+  for _, term in pairs(terms) do
+    if term.winid and api_funcs.win_is_valid(term.winid) then
+      local p, term_tab = pcall(api_funcs.win_get_tabpage, term.winid)
+      if p and term_tab == cur_tab then
+        api_funcs.win_set_option(term.winid, "winbar", winbar_text)
+      end
     end
   end
 end
@@ -114,7 +119,9 @@ end
 ---@return number?
 local function indexOf(tbl, value)
   for i, v in ipairs(tbl) do
-    if v == value then return i end
+    if v == value then
+      return i
+    end
   end
 end
 
@@ -122,7 +129,9 @@ end
 ---@param num number
 ---@return string
 local function get_term_key(num)
-  if not num then return options.prefix .. options.index_base end
+  if not num then
+    return options.prefix .. options.index_base
+  end
   term_key_cache[num] = term_key_cache[num] or (options.prefix .. num)
   return term_key_cache[num]
 end
@@ -135,6 +144,7 @@ local function smooth_open(term_key, current_tab)
   local term = terms[term_key]
   term.tabpage = current_tab
   cmd.b(term.bufid)
+  term.winid = api_funcs.get_current_win()
   term.jobid = vim.b.terminal_job_id
   vim.bo.ft = ft
   update_term_winbar()
@@ -145,26 +155,26 @@ end
 ---@param index number
 ---@return string
 local function insert_new_term_config(bufname, index)
+  local on_click_inactive = get_inactive_clickable_tab(bufname)
   terms[bufname] = {
     jobid = -1,
     bufid = -1,
+    winid = -1,
     tabpage = 0,
     index = index,
-    on_click = get_inactive_clickable_tab(bufname),
+    on_click_inactive = on_click_inactive,
+    on_click_active = on_click_inactive:gsub(options.inactive_tab_hl, options.active_tab_hl),
   }
   sorted_keys[#sorted_keys + 1] = bufname
-  vim.keymap.set(
-    { "t" },
-    options.jump_tab_mapping:gsub("$tab", index),
-    function()
-      if vim.bo.ft == ft then
-        local bname = fn.bufname("%")
-        local key = get_term_key(index)
-        if key ~= bname then smooth_open(key) end
+  vim.keymap.set({ "t" }, options.jump_tab_mapping:gsub("$tab", index), function()
+    if vim.bo.ft == ft then
+      local bname = fn.bufname("%")
+      local key = get_term_key(index)
+      if key ~= bname then
+        smooth_open(key)
       end
-    end,
-    { desc = "Goto BetterTerm #" .. index, silent = true }
-  )
+    end
+  end, { desc = "Goto BetterTerm #" .. index, silent = true })
   return bufname
 end
 
@@ -188,8 +198,12 @@ local function resize_terminal()
   local win = api_funcs.get_current_win()
   local editor_width, editor_height = get_editor_dimensions()
   local win_width, win_height = api_funcs.win_get_width(win), api_funcs.win_get_height(win)
-  if win_width < editor_width then api_funcs.win_set_width(win, options.size) end
-  if win_height < editor_height then api_funcs.win_set_height(win, options.size) end
+  if win_width < editor_width then
+    api_funcs.win_set_width(win, options.size)
+  end
+  if win_height < editor_height then
+    api_funcs.win_set_height(win, options.size)
+  end
 end
 
 --- Show terminal
@@ -199,6 +213,7 @@ local function show_term(key_term, tabpage)
   local term = terms[key_term]
   term.tabpage = tabpage
   cmd(open_buf .. term.bufid)
+  term.winid = api_funcs.get_current_win()
   resize_terminal()
   update_term_winbar()
   startinsert()
@@ -220,6 +235,7 @@ local function smooth_new_terminal(key_term, tabpage, cmd_buf, opts)
 
   local buf = api_funcs.create_buf(true, false)
   cmd(cmd_buf .. buf)
+  term.winid = api_funcs.get_current_win()
 
   if opts.cwd and opts.cwd ~= "." then
     local current_dir = uv.cwd()
@@ -244,7 +260,7 @@ local function smooth_new_terminal(key_term, tabpage, cmd_buf, opts)
   term.bufid = api_funcs.buf_get_number(0)
   term.jobid = vim.b.terminal_job_id
   update_term_winbar()
-  cmd('bwipeout! #')
+  cmd("bwipeout! #")
 end
 
 --- Create terminal
