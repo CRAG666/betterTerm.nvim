@@ -241,10 +241,10 @@ local function smooth_new_terminal(key_term, tabpage, cmd_buf, opts)
   -- using the :file command like this creates a duplicate alternate buffer with
   -- the buffer's old name, so we clean it up here to avoid having *two* terminals
   -- for every *one* we wanted to create
-  cmd('bwipeout! ' .. vim.fn.expand('#'))
   term.bufid = api_funcs.buf_get_number(0)
   term.jobid = vim.b.terminal_job_id
   update_term_winbar()
+  cmd('bwipeout! #')
 end
 
 --- Create terminal
