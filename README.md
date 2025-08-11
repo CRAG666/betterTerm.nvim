@@ -52,7 +52,7 @@ require('betterTerm').setup()
 - **Tabbed Interface**: Manage multiple terminals in a tabbed view within the winbar.
 - **Mouse Support**: Clickable tabs for easy navigation.
 - **Toggle Terminals**: Quickly open and hide terminals.
-- **Multi-Terminal Management**: Easily create, switch between, and manage several terminals.
+- **Multi-Terminal Management**: Easily create, switch between, rename, and manage several terminals.
 - **Send Commands**: Send commands to any terminal directly from Neovim.
 - **Terminal Selector**: Use `vim.ui.select` to pick a terminal from a list.
 - **Dynamic Tab Focus**: Bring any terminal to your current tab page, no matter where it was opened.
@@ -62,19 +62,21 @@ require('betterTerm').setup()
 
 The following functions are exposed for you to use:
 
-- `open({index}, {opts})`: Opens, focuses, or creates a terminal. If the terminal is already visible, it hides it.
-  - `{index}` (string|number|nil): The terminal ID to open. Defaults to `index_base`.
+- `open({id}, {opts})`: Opens, focuses, or creates a terminal. If the terminal is already visible, it hides it.
+  - `{id}` (string|number|nil): The terminal index (number) or buffer name (string) to open. Defaults to `index_base`.
   - `{opts}` (table|nil): Options for opening.
     - `cwd` (string): Set the working directory for a new terminal.
 
-- `send({command}, {num}, {press})`: Sends a command to a specific terminal.
+- `send({command}, {index}, {press})`: Sends a command to a specific terminal.
   - `{command}` (string): The command to execute.
-  - `{num}` (number|nil): The terminal ID. Defaults to `1`.
+  - `{index}` (number|nil): The terminal index. Defaults to `1`.
   - `{press}` (table|nil):
     - `clean` (boolean): Sends `<C-l>` to clear the screen before the command.
     - `interrupt` (boolean): Sends `<C-c>` to interrupt any running process.
 
 - `select()`: Shows a list of open terminals using `vim.ui.select` to switch to or focus one.
+
+- `rename()`: Renames the current active terminal. It will prompt for a new name.
 
 - `toggle_tabs()`: Toggles the visibility of the terminal tabs in the winbar.
 
@@ -94,6 +96,9 @@ vim.keymap.set({"n", "t"}, "<C-/>", function() betterTerm.open(1) end, { desc = 
 -- Select a terminal to focus
 vim.keymap.set("n", "<leader>tt", betterTerm.select, { desc = "Select terminal" })
 
+-- Rename the current terminal
+vim.keymap.set("n", "<leader>tr", betterTerm.rename, { desc = "Rename terminal" })
+
 -- Toggle the tabs bar
 vim.keymap.set("n", "<leader>tb", betterTerm.toggle_tabs, { desc = "Toggle terminal tabs" })
 ```
@@ -105,7 +110,7 @@ You can configure the plugin by passing a table to the `setup` function.
 ```lua
 -- Example configuration
 require('betterTerm').setup {
-  prefix = "CRAG_",
+  prefix = "CRAG",
   startInserted = false,
   position = "right",
   size = 80,
@@ -115,7 +120,7 @@ require('betterTerm').setup {
 
 #### Options
 
-- `prefix` (string, default: `Term_`): Prefix for terminal buffer names.
+- `prefix` (string, default: `Term`): Prefix for terminal buffer names. The final name will be `prefix (index)`.
 - `position` (string, default: `bot`): Position to open the terminal (`:h opening-window`).
 - `size` (number, default: `18`): Size of the terminal window.
 - `startInserted` (boolean, default: `true`): Start in insert mode when a terminal is opened.
@@ -132,7 +137,7 @@ require('betterTerm').setup {
 
 ```lua
 require('betterTerm').setup {
-  prefix = "Term_",
+  prefix = "Term",
   position = "bot",
   size = 18,
   startInserted = true,

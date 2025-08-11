@@ -1,7 +1,10 @@
 BetterTermOpenOptions	betterTerm.txt	/*BetterTermOpenOptions*
 M.open	betterTerm.txt	/*M.open*
+M.rename	betterTerm.txt	/*M.rename*
 M.select	betterTerm.txt	/*M.select*
 M.send	betterTerm.txt	/*M.send*
 M.setup	betterTerm.txt	/*M.setup*
+M.switch_to	betterTerm.txt	/*M.switch_to*
+M.toggle_tabs	betterTerm.txt	/*M.toggle_tabs*
 Press	betterTerm.txt	/*Press*
 UserOptions	betterTerm.txt	/*UserOptions*

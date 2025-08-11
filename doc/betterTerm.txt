@@ -39,8 +39,9 @@ The plugin can be configured using the `setup` function.
 `UserOptions` is a table that can contain the following fields:
 
   Fields: ~
-    {prefix}            (string) Prefix for terminal buffer names.
-                        Default: "Term_"
+    {prefix}            (string) Prefix for terminal buffer names. The final
+                        name will be `prefix (index)`.
+                        Default: "Term"
     {position}          (string) Position to open the terminal. Can be "bot",
                         "top", "left", "right".
                         Default: "bot"
@@ -79,6 +80,7 @@ keymaps:
   local term = require("betterTerm")
   vim.keymap.set("n", "<leader>to", function() term.open(1) end, { desc = "Open terminal 1" })
   vim.keymap.set("n", "<leader>ts", function() term.select() end, { desc = "Select terminal" })
+  vim.keymap.set("n", "<leader>tr", function() term.rename() end, { desc = "Rename terminal" })
   vim.keymap.set("n", "<leader>tt", function() term.toggle_tabs() end, { desc = "Toggle terminal tabs" })
 <
 
@@ -87,14 +89,14 @@ keymaps:
 
 ------------------------------------------------------------------------------
 *M.open*
-`M.open({index}, {opts?})`
+`M.open({id}, {opts?})`
 
   Open, focus, or create a terminal. If the specified terminal is already open
   and focused, it will be hidden.
 
   Parameters: ~
-    {index}  (string|number|nil) The index of the terminal to open. If nil,
-             it uses the `index_base`.
+    {id}     (string|number|nil) The index (number) or buffer name (string)
+             of the terminal to open. If nil, it uses the `index_base`.
     {opts?}  (BetterTermOpenOptions) Options for opening the terminal.
 
 *BetterTermOpenOptions*
@@ -106,13 +108,13 @@ keymaps:
 
 ------------------------------------------------------------------------------
 *M.send*
-`M.send({command}, {num?}, {press?})`
+`M.send({command}, {index?}, {press?})`
 
   Send a command to a specific terminal.
 
   Parameters: ~
     {command}  (string) The command to be sent to the terminal.
-    {num?}     (number|nil) The index of the target terminal.
+    {index?}   (number|nil) The index of the target terminal.
                Default: 1
     {press?}   (Press|nil) Options for sending the command.
 
@@ -131,6 +133,13 @@ keymaps:
 
   Opens a UI selection window to choose from the list of currently open
   terminals.
+
+------------------------------------------------------------------------------
+*M.rename*
+`M.rename()`
+
+  Renames the current active terminal. It will open a prompt from `vim.ui.input`
+  to ask for a new name. The final buffer name will be `new_name (index)`.
 
 ------------------------------------------------------------------------------
 *M.toggle_tabs*
