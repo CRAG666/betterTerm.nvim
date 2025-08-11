@@ -27,8 +27,7 @@ https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-
 {
   "CRAG666/betterTerm.nvim",
   opts = {
-    position = "bot",
-    size = 15,
+    -- your options
   },
 }
 ```
@@ -42,7 +41,7 @@ use { 'CRAG666/betterTerm.nvim' }
 
 ## Quick start
 
-Add the following line to your init.lua(If not use *Lazy*)
+Add the following line to your init.lua (If not use *Lazy*)
 
 ```lua
 require('betterTerm').setup()
@@ -50,62 +49,84 @@ require('betterTerm').setup()
 
 ### Features
 
-- Tabs bar
-- Mouse support
-- Toggle term
-- Multi term
-- Close the terminal as always, no rare mapping were added, just use :q! to close
-- Send command
-- Select the terminal you need, with Neovim's native selector
-- If you want you could have HotReload easily
-- Bring the terminal focus to your current tab, no matter if the terminal is open in tab 100 and you need it in tab 1.
+- **Tabbed Interface**: Manage multiple terminals in a tabbed view within the winbar.
+- **Mouse Support**: Clickable tabs for easy navigation.
+- **Toggle Terminals**: Quickly open and hide terminals.
+- **Multi-Terminal Management**: Easily create, switch between, and manage several terminals.
+- **Send Commands**: Send commands to any terminal directly from Neovim.
+- **Terminal Selector**: Use `vim.ui.select` to pick a terminal from a list.
+- **Dynamic Tab Focus**: Bring any terminal to your current tab page, no matter where it was opened.
+- **Customizable**: Extensive options to tailor the look and feel.
 
-### Functions
+### API
 
-- `:lua require("config.betterTerm").open(num)` - Show or hide a specific terminal(num: terminal id).
-- `:lua require("config.betterTerm").send(cmd, num, press)` - Send a command to a specific terminal(cmd: command, num: terminal id, press: Press clean and/or interrupt).
-- `:lua require("config.betterTerm").select()` -Select any terminal.Whether you want to show or hide(use: vim.ui.select as backend).
+The following functions are exposed for you to use:
+
+- `open({index}, {opts})`: Opens, focuses, or creates a terminal. If the terminal is already visible, it hides it.
+  - `{index}` (string|number|nil): The terminal ID to open. Defaults to `index_base`.
+  - `{opts}` (table|nil): Options for opening.
+    - `cwd` (string): Set the working directory for a new terminal.
+
+- `send({command}, {num}, {press})`: Sends a command to a specific terminal.
+  - `{command}` (string): The command to execute.
+  - `{num}` (number|nil): The terminal ID. Defaults to `1`.
+  - `{press}` (table|nil):
+    - `clean` (boolean): Sends `<C-l>` to clear the screen before the command.
+    - `interrupt` (boolean): Sends `<C-c>` to interrupt any running process.
+
+- `select()`: Shows a list of open terminals using `vim.ui.select` to switch to or focus one.
+
+- `toggle_tabs()`: Toggles the visibility of the terminal tabs in the winbar.
 
 ### Recommended keymaps
 
-No keymaps is assigned by default.It is better that you do it yourself, I will show my preferred keymaps:
+No keymaps are set by default. Here are some recommendations:
 
 ```lua
 local betterTerm = require('betterTerm')
--- toggle firts term
-vim.keymap.set({"n", "t"}, "<C-;>", betterTerm.open, { desc = "Open terminal"})
--- Select term focus
-vim.keymap.set({"n"}, "<leader>tt", betterTerm.select, { desc = "Select terminal"})
+
+-- Toggle the first terminal (ID defaults to index_base, which is 0)
+vim.keymap.set({"n", "t"}, "<C-;>", function() betterTerm.open() end, { desc = "Toggle terminal" })
+
+-- Open a specific terminal
+vim.keymap.set({"n", "t"}, "<C-/>", function() betterTerm.open(1) end, { desc = "Toggle terminal 1" })
+
+-- Select a terminal to focus
+vim.keymap.set("n", "<leader>tt", betterTerm.select, { desc = "Select terminal" })
+
+-- Toggle the tabs bar
+vim.keymap.set("n", "<leader>tb", betterTerm.toggle_tabs, { desc = "Toggle terminal tabs" })
 ```
 
-### Options
+### Configuration
 
-- `prefix`: It is used to create the names and a autocmd (default: `Term_`).
-- `position`: Integrated terminal position (for option `:h opening-window`, default: `bot`)
-- `size`: Size of the terminal window (default: `18`)
-- `startInserted`: Should the terminal be in insert mode when opened (default: `true`)
-- `show_tabs`: Enable/Disable the tabs bar (default: `true`)
-- `new_tab_mapping`: Mapping for create new terminal (default: `<C-t>`)
-- `jump_tab_mapping`: Mapping for jump to tab terminal (default: `<C-$tab>`)
-- `active_tab_hl`: Highlight group for active tab (default: `TabLineSel`)
-- `inactive_tab_hl`: Highlight group for inactive tabs (default: `TabLine`)
-- `new_tab_hl`: Highlight group for icon new term (default: `BetterTermSymbol`)
-- `new_tab_icon`: Icon for new term (default: `+`)
-- `index_base`: The starting index number for terminal tabs. (Default: `0`)
-
-
-### Setup
+You can configure the plugin by passing a table to the `setup` function.
 
 ```lua
--- this is a config example
+-- Example configuration
 require('betterTerm').setup {
   prefix = "CRAG_",
   startInserted = false,
-  position = "bot",
-  size = 25
-  jump_tab_mapping = "<A-$tab>", -- Alt+1 , Alt+2, ...
+  position = "right",
+  size = 80,
+  jump_tab_mapping = "<A-$tab>", -- Alt+1, Alt+2, ...
 }
 ```
+
+#### Options
+
+- `prefix` (string, default: `Term_`): Prefix for terminal buffer names.
+- `position` (string, default: `bot`): Position to open the terminal (`:h opening-window`).
+- `size` (number, default: `18`): Size of the terminal window.
+- `startInserted` (boolean, default: `true`): Start in insert mode when a terminal is opened.
+- `show_tabs` (boolean, default: `true`): Enable/Disable the tabs bar.
+- `new_tab_mapping` (string, default: `<C-t>`): Mapping to create a new terminal from within a terminal buffer.
+- `jump_tab_mapping` (string, default: `<C-$tab>`): Mapping to jump to a specific terminal tab. `$tab` is replaced with the terminal index.
+- `active_tab_hl` (string, default: `TabLineSel`): Highlight group for the active tab.
+- `inactive_tab_hl` (string, default: `TabLine`): Highlight group for inactive tabs.
+- `new_tab_hl` (string, default: `BetterTermSymbol`): Highlight group for the new tab icon.
+- `new_tab_icon` (string, default: `+`): Icon for the new tab button.
+- `index_base` (number, default: `0`): The starting index number for terminals.
 
 #### Default values
 
@@ -116,13 +137,13 @@ require('betterTerm').setup {
   size = 18,
   startInserted = true,
   show_tabs = true,
-  new_tab_mapping = "<C-t>",       -- Create new terminal
-  jump_tab_mapping = "<C-$tab>",   -- Jump to tab terminal
-  active_tab_hl = "TabLineSel",    -- Highlight group for active tab
-  inactive_tab_hl = "TabLine",     -- Highlight group for inactive tabs
-  new_tab_hl = "BetterTermSymbol", -- Highlight group for new term
-  new_tab_icon = "+",              -- Icon for new term
-  index_base = 0                   -- Index number for terminals 
+  new_tab_mapping = "<C-t>",
+  jump_tab_mapping = "<C-$tab>",
+  active_tab_hl = "TabLineSel",
+  inactive_tab_hl = "TabLine",
+  new_tab_hl = "BetterTermSymbol",
+  new_tab_icon = "+",
+  index_base = 0
 }
 ```
 

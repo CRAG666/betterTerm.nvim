@@ -1,57 +1,151 @@
-BetterTermOpenOptions                                    *BetterTermOpenOptions*
+*betterTerm.txt*      For betterTerm.nvim
 
-    Fields: ~
-        {cwd?}  (string)
+CONTENTS                                                  *betterTerm-contents*
 
+  1. Introduction........................................|betterTerm-introduction|
+  2. Configuration.......................................|betterTerm-configuration|
+  3. Usage...............................................|betterTerm-usage|
+  4. API.................................................|betterTerm-api|
 
-M.open({index}, {opts?})                                                *M.open*
-     Open/focus/create terminal, if terminal is already open, hide it
+==============================================================================
+1. Introduction                                         *betterTerm-introduction*
 
-    Parameters: ~
-        {index}  (string|number|nil)
-        {opts?}  (BetterTermOpenOptions)
+betterTerm.nvim is a plugin for managing terminals within Neovim, providing
+an easy way to open, manage, and interact with multiple terminal instances.
+It features a tabbed interface in the winbar for quick navigation between
+terminals.
 
-Press                                                                    *Press*
+==============================================================================
+2. Configuration                                      *betterTerm-configuration*
 
-    Fields: ~
-        {clean}      (boolean)
-        {interrupt}  (boolean)
+The plugin can be configured using the `setup` function.
 
+*M.setup*
+`M.setup({user_options})`
 
-M.send({command}, {num}, {press})                                       *M.send*
-     Send command to terminal
+  Configuration function for betterTerm.nvim.
 
-    Parameters: ~
-        {command}  (string)
-        {num}      (number|nil)
-        {press}    (Press|nil)
+  Parameters: ~
+    {user_options}  (UserOptions|nil) Table with user configurations.
 
+  Example: >
+    require("betterTerm").setup({
+      position = "right",
+      size = 80,
+    })
+  <
 
-M.select()                                                            *M.select*
-     Select terminal opened
+*UserOptions*
+`UserOptions` is a table that can contain the following fields:
 
+  Fields: ~
+    {prefix}            (string) Prefix for terminal buffer names.
+                        Default: "Term_"
+    {position}          (string) Position to open the terminal. Can be "bot",
+                        "top", "left", "right".
+                        Default: "bot"
+    {size}              (number) Size of the terminal window (height for
+                        horizontal split, width for vertical).
+                        Default: 18
+    {startInserted}     (boolean) Start in insert mode when a terminal is
+                        opened.
+                        Default: true
+    {show_tabs}         (boolean) Show terminal tabs in the winbar.
+                        Default: true
+    {new_tab_mapping}   (string) Mapping to create a new terminal tab from
+                        within a terminal buffer.
+                        Default: "<C-t>"
+    {jump_tab_mapping}  (string) Template for mappings to jump to a specific
+                        terminal tab. `$tab` is replaced with the terminal index.
+                        Default: "<C-$tab>"
+    {active_tab_hl}     (string) Highlight group for the active tab.
+                        Default: "TabLineSel"
+    {inactive_tab_hl}   (string) Highlight group for inactive tabs.
+                        Default: "TabLine"
+    {new_tab_hl}        (string) Highlight group for the new tab icon.
+                        Default: "BetterTermSymbol"
+    {new_tab_icon}      (string) Icon for the new tab button.
+                        Default: "+"
+    {index_base}        (number) The starting index for terminals.
+                        Default: 0
 
-UserOptions                                                        *UserOptions*
+==============================================================================
+3. Usage                                                        *betterTerm-usage*
 
-    Fields: ~
-        {prefix}            (string)
-        {position}          (string)
-        {size}              (string)
-        {startInserted}     (boolean)
-        {show_tabs}         (boolean)
-        {new_tab_mapping}   (string)
-        {jump_tab_mapping}  (string)
-        {active_tab_hl}     (string)
-        {inactive_tab_hl}   (string)
-        {new_tab_hl}        (string)
-        {new_tab_icon}      (string)
+You can use the provided functions to manage terminals. Here are some example
+keymaps:
 
+>
+  local term = require("betterTerm")
+  vim.keymap.set("n", "<leader>to", function() term.open(1) end, { desc = "Open terminal 1" })
+  vim.keymap.set("n", "<leader>ts", function() term.select() end, { desc = "Select terminal" })
+  vim.keymap.set("n", "<leader>tt", function() term.toggle_tabs() end, { desc = "Toggle terminal tabs" })
+<
 
-M.setup({user_options})                                                *M.setup*
-     Configuration
+==============================================================================
+4. API                                                          *betterTerm-api*
 
-    Parameters: ~
-        {user_options}  (UserOptions|nil)
+------------------------------------------------------------------------------
+*M.open*
+`M.open({index}, {opts?})`
 
+  Open, focus, or create a terminal. If the specified terminal is already open
+  and focused, it will be hidden.
+
+  Parameters: ~
+    {index}  (string|number|nil) The index of the terminal to open. If nil,
+             it uses the `index_base`.
+    {opts?}  (BetterTermOpenOptions) Options for opening the terminal.
+
+*BetterTermOpenOptions*
+  Options for `M.open`.
+
+  Fields: ~
+    {cwd?}  (string) The working directory for the new terminal.
+            Default: current directory.
+
+------------------------------------------------------------------------------
+*M.send*
+`M.send({command}, {num?}, {press?})`
+
+  Send a command to a specific terminal.
+
+  Parameters: ~
+    {command}  (string) The command to be sent to the terminal.
+    {num?}     (number|nil) The index of the target terminal.
+               Default: 1
+    {press?}   (Press|nil) Options for sending the command.
+
+*Press*
+  Options for `M.send`.
+
+  Fields: ~
+    {clean}      (boolean) If true, sends `<C-l>` to clear the terminal
+                 screen before sending the command.
+    {interrupt}  (boolean) If true, sends `<C-c>` to interrupt any running
+                 process before sending the command.
+
+------------------------------------------------------------------------------
+*M.select*
+`M.select()`
+
+  Opens a UI selection window to choose from the list of currently open
+  terminals.
+
+------------------------------------------------------------------------------
+*M.toggle_tabs*
+`M.toggle_tabs()`
+
+  Toggles the visibility of the terminal tabs in the winbar.
+
+------------------------------------------------------------------------------
+*M.switch_to*
+`M.switch_to({term_key})`
+
+  Switch focus to a specific terminal. This is mainly used internally by the
+  clickable tabs.
+
+  Parameters: ~
+    {term_key}  (string) The full buffer name of the terminal to switch to.
 
 vim:tw=78:ts=8:noet:ft=help:norl:
