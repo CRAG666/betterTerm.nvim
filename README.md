@@ -1,6 +1,6 @@
 <h1 align='center'>Better Term</h1>
 
-<h4 align='center'>🔥 The improved vscode terminal for Neovim written in pure lua 🔥</h4>
+<h4 align='center'>🔥 The improved vscode/jetbrains terminal for Neovim written in pure lua 🔥</h4>
 
 ![Image](https://github.com/user-attachments/assets/17645559-68c4-4b6e-a048-427954703779)
 
@@ -11,7 +11,7 @@ https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-
 I like the concept of vscode terminal, if you are like me, this complement will be the best of your options.
 Normally I like to stay inside the editor, if I can make coffee in the editor, believe me I would do it. So having an integrated terminal is the most sensible option, however I tried for a long time to use the integrated terminal of neovim and I didn't get used to write so much to do what I wanted, so I tried and tried plugins, which were not for me, I just wanted something simple and usable, without so many complications. Then as other times I started to program and from that Saturday afternoon came out this plugin. I hope you enjoy it and make all your PR's.
 
-By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 486 lines!!!.
+By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 599 lines!!!.
 
 https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
 
@@ -20,6 +20,13 @@ https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-
 - Neovim (>= 0.10)
 
 ## Install
+
+- With **Native installer** (*Neovim >= 0.12*)
+
+```lua
+vim.pack.add({"https://github.com/CRAG666/betterTerm.nvim"})
+require('betterTerm').setup()
+```
 
 - With [Lazy](https://github.com/folke/lazy.nvim)
 
@@ -41,17 +48,12 @@ use { 'CRAG666/betterTerm.nvim' }
 
 ## Quick start
 
-Add the following line to your init.lua (If not use *Lazy*)
-
-```lua
-require('betterTerm').setup()
-```
-
 ### Features
 
 - **Tabbed Interface**: Manage multiple terminals in a tabbed view within the winbar.
 - **Mouse Support**: Clickable tabs for easy navigation.
 - **Toggle Terminals**: Quickly open and hide terminals.
+- **Rename Terminals**: Easily rename terminals like jetbrains.
 - **Multi-Terminal Management**: Easily create, switch between, rename, and manage several terminals.
 - **Send Commands**: Send commands to any terminal directly from Neovim.
 - **Terminal Selector**: Use `vim.ui.select` to pick a terminal from a list.
@@ -122,7 +124,7 @@ require('betterTerm').setup {
 
 - `prefix` (string, default: `Term`): Prefix for terminal buffer names. The final name will be `prefix (index)`.
 - `position` (string, default: `bot`): Position to open the terminal (`:h opening-window`).
-- `size` (number, default: `18`): Size of the terminal window.
+- `size` (number, default: `vim.o.lines / 2`): Size of the terminal window.
 - `startInserted` (boolean, default: `true`): Start in insert mode when a terminal is opened.
 - `show_tabs` (boolean, default: `true`): Enable/Disable the tabs bar.
 - `new_tab_mapping` (string, default: `<C-t>`): Mapping to create a new terminal from within a terminal buffer.
@@ -137,18 +139,18 @@ require('betterTerm').setup {
 
 ```lua
 require('betterTerm').setup {
-  prefix = "Term",
-  position = "bot",
-  size = 18,
-  startInserted = true,
-  show_tabs = true,
-  new_tab_mapping = "<C-t>",
-  jump_tab_mapping = "<C-$tab>",
-  active_tab_hl = "TabLineSel",
-  inactive_tab_hl = "TabLine",
-  new_tab_hl = "BetterTermSymbol",
-  new_tab_icon = "+",
-  index_base = 0
+	prefix = "Term",
+	position = "bot",
+	size = math.floor(vim.o.columns / 2),
+	startInserted = true,
+	show_tabs = true,
+	new_tab_mapping = "<C-t>",
+	jump_tab_mapping = "<C-$tab>",
+	active_tab_hl = "TabLineSel",
+	inactive_tab_hl = "TabLine",
+	new_tab_hl = "BetterTermSymbol",
+	new_tab_icon = "+",
+	index_base = 0,
 }
 ```
 
@@ -190,6 +192,16 @@ return {
     jump_tab_mapping = "<A-$tab>"
   },
 }
+```
+
+#### My native config
+```python
+  vim.pack.add({"https://github.com/CRAG666/betterTerm.nvim"})
+  require('betterTerm').setup({
+    position = 'vert',
+    size = math.floor(vim.o.columns / 2),
+    jump_tab_mapping = '<A-$tab>',
+  })
 ```
 
 # Contributing

@@ -8,3 +8,9 @@ M.switch_to	betterTerm.txt	/*M.switch_to*
 M.toggle_tabs	betterTerm.txt	/*M.toggle_tabs*
 Press	betterTerm.txt	/*Press*
 UserOptions	betterTerm.txt	/*UserOptions*
+betterTerm-api	betterTerm.txt	/*betterTerm-api*
+betterTerm-configuration	betterTerm.txt	/*betterTerm-configuration*
+betterTerm-contents	betterTerm.txt	/*betterTerm-contents*
+betterTerm-introduction	betterTerm.txt	/*betterTerm-introduction*
+betterTerm-usage	betterTerm.txt	/*betterTerm-usage*
+betterTerm.txt	betterTerm.txt	/*betterTerm.txt*

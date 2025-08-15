@@ -1,37 +1,10 @@
 local api, fn, cmd, uv = vim.api, vim.fn, vim.cmd, vim.uv
 
--- Cached API functions
-local api_funcs = {
-	buf_get_name = api.nvim_buf_get_name,
-	create_augroup = api.nvim_create_augroup,
-	create_autocmd = api.nvim_create_autocmd,
-	get_current_win = api.nvim_get_current_win,
-	get_current_tabpage = api.nvim_get_current_tabpage,
-	buf_is_valid = api.nvim_buf_is_valid,
-	win_set_width = api.nvim_win_set_width,
-	win_set_height = api.nvim_win_set_height,
-	win_get_width = api.nvim_win_get_width,
-	win_get_height = api.nvim_win_get_height,
-	win_hide = api.nvim_win_hide,
-	tabpage_list_wins = api.nvim_tabpage_list_wins,
-	win_get_buf = api.nvim_win_get_buf,
-	create_buf = api.nvim_create_buf,
-	buf_get_number = api.nvim_buf_get_number,
-	tabpage_is_valid = api.nvim_tabpage_is_valid,
-	chan_send = api.nvim_chan_send,
-	replace_termcodes = api.nvim_replace_termcodes,
-	buf_delete = api.nvim_buf_delete,
-	win_is_valid = api.nvim_win_is_valid,
-	win_close = api.nvim_win_close,
-	win_get_tabpage = api.nvim_win_get_tabpage,
-	win_set_option = api.nvim_win_set_option,
-}
-
 -- Default configuration
 local options = {
 	prefix = "Term",
 	position = "bot",
-	size = 18,
+	size = math.floor(vim.o.columns / 2),
 	startInserted = true,
 	show_tabs = true,
 	new_tab_mapping = "<C-t>",
@@ -44,8 +17,11 @@ local options = {
 }
 
 -- Global state
-local terms = {} -- Keyed by numerical index
-local term_lookup = {} -- Keyed by bufname, value is index
+local State = {
+	terms = {}, -- Keyed by numerical index
+	term_lookup = {}, -- Keyed by bufname, value is index
+	sorted_keys = {}, -- Holds bufnames for ordered display
+}
 local ft = "better_term"
 local term_current = options.index_base
 local last_winbar_text = nil
@@ -54,7 +30,6 @@ local clickable_new = ""
 local M = {}
 local open_buf = ""
 local startinsert = function() end
-local sorted_keys = {} -- Holds bufnames for ordered display
 _G.BetterTerm = _G.BetterTerm or {}
 _G.BetterTerm.switch_funcs = _G.BetterTerm.switch_funcs or {}
 
@@ -75,17 +50,17 @@ end
 
 -- Generate winbar with clickable tabs
 local function generate_winbar_tabs()
-	if not options.show_tabs or vim.tbl_isempty(terms) or vim.tbl_isempty(sorted_keys) then
+	if not options.show_tabs or vim.tbl_isempty(State.terms) or vim.tbl_isempty(State.sorted_keys) then
 		return ""
 	end
 
 	local tabs = {}
 	local active_term_bufname = vim.bo.ft == ft and fn.bufname("%") or nil
-	for _, bufname in ipairs(sorted_keys) do
-		local index = term_lookup[bufname]
+	for _, bufname in ipairs(State.sorted_keys) do
+		local index = State.term_lookup[bufname]
 		if index then
-			local term = terms[index]
-			if api_funcs.buf_is_valid(term.bufid) then
+			local term = State.terms[index]
+			if api.nvim_buf_is_valid(term.bufid) then
 				if bufname == active_term_bufname then
 					tabs[#tabs + 1] = term.on_click_active
 				else
@@ -109,12 +84,12 @@ local function update_term_winbar()
 	end
 	last_winbar_text = winbar_text
 
-	local cur_tab = api_funcs.get_current_tabpage()
-	for _, term in pairs(terms) do
-		if term.winid and api_funcs.win_is_valid(term.winid) then
-			local p, term_tab = pcall(api_funcs.win_get_tabpage, term.winid)
+	local cur_tab = api.nvim_get_current_tabpage()
+	for _, term in pairs(State.terms) do
+		if term.winid and api.nvim_win_is_valid(term.winid) then
+			local p, term_tab = pcall(api.nvim_win_get_tabpage, term.winid)
 			if p and term_tab == cur_tab then
-				api_funcs.win_set_option(term.winid, "winbar", winbar_text)
+				api.nvim_win_set_option(term.winid, "winbar", winbar_text)
 			end
 		end
 	end
@@ -136,8 +111,8 @@ end
 ---@param index number
 ---@return string
 local function get_bufname_by_index(index)
-	if terms[index] then
-		return terms[index].bufname
+	if State.terms[index] then
+		return State.terms[index].bufname
 	end
 	return options.prefix .. " (" .. index .. ")"
 end
@@ -146,15 +121,15 @@ end
 ---@param bufname string
 ---@param current_tab number?
 local function smooth_open(bufname, current_tab)
-	current_tab = current_tab or api_funcs.get_current_tabpage()
-	local index = term_lookup[bufname]
+	current_tab = current_tab or api.nvim_get_current_tabpage()
+	local index = State.term_lookup[bufname]
 	if not index then
 		return
 	end
-	local term = terms[index]
+	local term = State.terms[index]
 	term.tabpage = current_tab
 	cmd.b(term.bufid)
-	term.winid = api_funcs.get_current_win()
+	term.winid = api.nvim_get_current_win()
 	term.jobid = vim.b.terminal_jobid
 	vim.bo.ft = ft
 	update_term_winbar()
@@ -168,7 +143,7 @@ local function insert_new_term_config(index)
 	local bufname = name .. " (" .. index .. ")"
 	local on_click_inactive = get_inactive_clickable_tab(bufname)
 
-	terms[index] = {
+	State.terms[index] = {
 		name = name,
 		bufname = bufname,
 		jobid = -1,
@@ -178,8 +153,8 @@ local function insert_new_term_config(index)
 		on_click_inactive = on_click_inactive,
 		on_click_active = on_click_inactive:gsub(options.inactive_tab_hl, options.active_tab_hl),
 	}
-	term_lookup[bufname] = index
-	sorted_keys[#sorted_keys + 1] = bufname
+	State.term_lookup[bufname] = index
+	State.sorted_keys[#State.sorted_keys + 1] = bufname
 
 	vim.keymap.set({ "t" }, options.jump_tab_mapping:gsub("$tab", index), function()
 		if vim.bo.ft == ft then
@@ -210,14 +185,14 @@ end
 
 -- Resize terminal window
 local function resize_terminal()
-	local win = api_funcs.get_current_win()
+	local win = api.nvim_get_current_win()
 	local editor_width, editor_height = get_editor_dimensions()
-	local win_width, win_height = api_funcs.win_get_width(win), api_funcs.win_get_height(win)
+	local win_width, win_height = api.nvim_win_get_width(win), api.nvim_win_get_height(win)
 	if win_width < editor_width then
-		api_funcs.win_set_width(win, options.size)
+		api.nvim_win_set_width(win, options.size)
 	end
 	if win_height < editor_height then
-		api_funcs.win_set_height(win, options.size)
+		api.nvim_win_set_height(win, options.size)
 	end
 end
 
@@ -225,14 +200,14 @@ end
 ---@param bufname string
 ---@param tabpage number
 local function show_term(bufname, tabpage)
-	local index = term_lookup[bufname]
+	local index = State.term_lookup[bufname]
 	if not index then
 		return
 	end
-	local term = terms[index]
+	local term = State.terms[index]
 	term.tabpage = tabpage
 	cmd(open_buf .. term.bufid)
-	term.winid = api_funcs.get_current_win()
+	term.winid = api.nvim_get_current_win()
 	resize_terminal()
 	update_term_winbar()
 	startinsert()
@@ -247,18 +222,18 @@ end
 ---@param cmd_buf string | nil
 ---@param opts? BetterTermOpenOptions
 local function smooth_new_terminal(bufname, tabpage, cmd_buf, opts)
-	local index = term_lookup[bufname]
+	local index = State.term_lookup[bufname]
 	if not index then
 		return
 	end
-	local term = terms[index]
+	local term = State.terms[index]
 	term.tabpage = tabpage
 	opts = opts or {}
 	cmd_buf = cmd_buf or "b"
 
-	local buf = api_funcs.create_buf(true, false)
+	local buf = api.nvim_create_buf(true, false)
 	cmd(cmd_buf .. buf)
-	term.winid = api_funcs.get_current_win()
+	term.winid = api.nvim_get_current_win()
 
 	if opts.cwd and opts.cwd ~= "." then
 		local current_dir = uv.cwd()
@@ -280,7 +255,7 @@ local function smooth_new_terminal(bufname, tabpage, cmd_buf, opts)
 	-- using the :file command like this creates a duplicate alternate buffer with
 	-- the buffer's old name, so we clean it up here to avoid having *two* terminals
 	-- for every *one* we wanted to create
-	term.bufid = api_funcs.buf_get_number(0)
+	term.bufid = api.nvim_buf_get_number(0)
 	term.jobid = vim.b.terminal_jobid
 	update_term_winbar()
 	cmd("bwipeout! #")
@@ -299,23 +274,23 @@ end
 ---@param bufname string
 local function hide_current_term_in_tab(bufname)
 	if vim.bo.ft == ft then
-		api_funcs.win_hide(0)
+		api.nvim_win_hide(0)
 		return
 	end
-	local index = term_lookup[bufname]
+	local index = State.term_lookup[bufname]
 	if not index then
 		return
 	end
-	local term = terms[index]
-	if not api_funcs.tabpage_is_valid(term.tabpage) then
+	local term = State.terms[index]
+	if not api.nvim_tabpage_is_valid(term.tabpage) then
 		term.tabpage = 0
 		return
 	end
 
-	for _, win in ipairs(api_funcs.tabpage_list_wins(term.tabpage)) do
-		local bid = api_funcs.win_get_buf(win)
+	for _, win in ipairs(api.nvim_tabpage_list_wins(term.tabpage)) do
+		local bid = api.nvim_win_get_buf(win)
 		if vim.bo[bid].ft == ft then
-			api_funcs.win_hide(win)
+			api.nvim_win_hide(win)
 		end
 	end
 end
@@ -327,8 +302,8 @@ local function get_or_create_term(index)
 	if index >= term_current then
 		term_current = index + 1
 	end
-	if terms[index] then
-		return terms[index].bufname
+	if State.terms[index] then
+		return State.terms[index].bufname
 	end
 	return insert_new_term_config(index)
 end
@@ -341,7 +316,7 @@ function M.open(id, opts)
 	if type(id) == "number" then
 		index = id
 	elseif type(id) == "string" then
-		index = term_lookup[id]
+		index = State.term_lookup[id]
 		if not index then
 			print("Term not valid: " .. id)
 			return
@@ -351,15 +326,15 @@ function M.open(id, opts)
 	end
 
 	local bufname = get_or_create_term(index)
-	local term = terms[index]
-	local cur_tab = api_funcs.get_current_tabpage()
+	local term = State.terms[index]
+	local cur_tab = api.nvim_get_current_tabpage()
 
 	local function switch_tab()
 		hide_current_term_in_tab(bufname)
 		show_term(bufname, cur_tab)
 	end
 
-	if not api_funcs.buf_is_valid(term.bufid) then
+	if not api.nvim_buf_is_valid(term.bufid) then
 		hide_current_term_in_tab(bufname)
 		return create_new_term(bufname, cur_tab, opts)
 	end
@@ -372,7 +347,7 @@ function M.open(id, opts)
 		return switch_tab()
 	end
 
-	api_funcs.win_hide(bufinfo.windows[1])
+	api.nvim_win_hide(bufinfo.windows[1])
 	if cur_tab ~= term.tabpage then
 		switch_tab()
 	end
@@ -386,7 +361,7 @@ end
 -- Create new terminal from winbar
 local function new_term_from_winbar()
 	local bufname = get_or_create_term(term_current)
-	smooth_new_terminal(bufname, api_funcs.get_current_tabpage(), nil, {})
+	smooth_new_terminal(bufname, api.nvim_get_current_tabpage(), nil, {})
 	update_term_winbar()
 end
 _G.BetterTerm.new_term_from_winbar = new_term_from_winbar
@@ -401,9 +376,9 @@ local termcodes = {}
 -- Initialize termcodes
 local function init_termcodes()
 	if not termcodes.ctrl_c then
-		termcodes.ctrl_c = api_funcs.replace_termcodes("<C-c> ", true, true, true)
-		termcodes.ctrl_l = api_funcs.replace_termcodes("<C-l> ", true, true, true)
-		termcodes.ctrl_c_l = api_funcs.replace_termcodes("<C-c> <C-l> ", true, true, true)
+		termcodes.ctrl_c = api.nvim_replace_termcodes("<C-c> ", true, true, true)
+		termcodes.ctrl_l = api.nvim_replace_termcodes("<C-l> ", true, true, true)
+		termcodes.ctrl_c_l = api.nvim_replace_termcodes("<C-c> <C-l> ", true, true, true)
 	end
 end
 
@@ -413,37 +388,37 @@ end
 --@param press Press | nil
 function M.send(command, index, press)
 	index = index or 1
-	local current_term = terms[index]
+	local current_term = State.terms[index]
 
 	if not current_term then
 		M.open(index)
 		uv.sleep(100)
-		current_term = terms[index]
+		current_term = State.terms[index]
 	end
 
 	init_termcodes()
 	if press then
 		if press.interrupt and press.clean then
 			uv.sleep(100)
-			api_funcs.chan_send(current_term.jobid, termcodes.ctrl_c_l)
+			api.nvim_chan_send(current_term.jobid, termcodes.ctrl_c_l)
 		elseif press.interrupt then
 			uv.sleep(100)
-			api_funcs.chan_send(current_term.jobid, termcodes.ctrl_c)
+			api.nvim_chan_send(current_term.jobid, termcodes.ctrl_c)
 		elseif press.clean then
 			uv.sleep(100)
-			api_funcs.chan_send(current_term.jobid, termcodes.ctrl_l)
+			api.nvim_chan_send(current_term.jobid, termcodes.ctrl_l)
 		end
 	end
-	api_funcs.chan_send(current_term.jobid, command .. "\n")
+	api.nvim_chan_send(current_term.jobid, command .. "\n")
 end
 
 -- Select terminal
 function M.select()
-	if vim.tbl_isempty(terms) then
+	if vim.tbl_isempty(State.terms) then
 		print("Empty betterTerm's")
 		return
 	end
-	vim.ui.select(sorted_keys, {
+	vim.ui.select(State.sorted_keys, {
 		prompt = "Select a Term",
 		format_item = function(term)
 			return term
@@ -465,13 +440,13 @@ function M.rename()
 	end
 
 	local old_bufname = fn.bufname("%")
-	local index = term_lookup[old_bufname]
+	local index = State.term_lookup[old_bufname]
 	if not index then
 		print("Could not find terminal info for " .. old_bufname)
 		return
 	end
 
-	local term = terms[index]
+	local term = State.terms[index]
 	vim.ui.input({ prompt = "New name for terminal (" .. index .. "):", default = term.name }, function(new_base_name)
 		if not new_base_name or new_base_name == "" then
 			print("Rename cancelled.")
@@ -480,20 +455,20 @@ function M.rename()
 
 		local new_bufname = new_base_name .. " (" .. index .. ")"
 
-		if term_lookup[new_bufname] then
+		if State.term_lookup[new_bufname] then
 			print("Terminal with name '" .. new_bufname .. "' already exists.")
 			return
 		end
 
 		-- Update the key in sorted_keys
-		local old_key_index = indexOf(sorted_keys, old_bufname)
+		local old_key_index = indexOf(State.sorted_keys, old_bufname)
 		if old_key_index then
-			sorted_keys[old_key_index] = new_bufname
+			State.sorted_keys[old_key_index] = new_bufname
 		end
 
 		-- Update the lookup table
-		term_lookup[new_bufname] = index
-		term_lookup[old_bufname] = nil
+		State.term_lookup[new_bufname] = index
+		State.term_lookup[old_bufname] = nil
 
 		-- Update term object
 		term.name = new_base_name
@@ -518,11 +493,11 @@ function M.toggle_tabs()
 	if options.show_tabs then
 		update_term_winbar()
 	else
-		for _, term in pairs(terms) do
+		for _, term in pairs(State.terms) do
 			local bufinfo = fn.getbufinfo(term.bufid)[1]
 			if bufinfo and not bufinfo.hidden then
 				for _, win in ipairs(bufinfo.windows) do
-					if api_funcs.win_is_valid(win) then
+					if api.nvim_win_is_valid(win) then
 						api.nvim_win_set_option(win, "winbar", "")
 					end
 				end
@@ -553,31 +528,31 @@ function M.setup(user_options)
 	startinsert = options.startInserted and cmd.startinsert or function() end
 	open_buf = options.position .. " sb "
 
-	local group = api_funcs.create_augroup("BetterTerm", { clear = true })
+	local group = api.nvim_create_augroup("BetterTerm", { clear = true })
 
-	api_funcs.create_autocmd("BufWipeout", {
+	api.nvim_create_autocmd("BufWipeout", {
 		group = group,
 		pattern = "*",
 		callback = function(args)
 			local bufname = fn.bufname(args.buf)
-			local index = term_lookup[bufname]
+			local index = State.term_lookup[bufname]
 			if not index then
 				return
 			end
 
 			vim.keymap.del({ "t" }, tostring(options.jump_tab_mapping:gsub("$tab", index)))
-			local sorted_index = indexOf(sorted_keys, bufname)
-			terms[index] = nil
-			term_lookup[bufname] = nil
+			local sorted_index = indexOf(State.sorted_keys, bufname)
+			State.terms[index] = nil
+			State.term_lookup[bufname] = nil
 			if sorted_index then
-				table.remove(sorted_keys, sorted_index)
+				table.remove(State.sorted_keys, sorted_index)
 			end
 
 			vim.defer_fn(function()
 				if sorted_index and sorted_index > 1 then
-					M.open(sorted_keys[sorted_index - 1])
-				elseif sorted_index and #sorted_keys >= 1 then
-					M.open(sorted_keys[1])
+					M.open(State.sorted_keys[sorted_index - 1])
+				elseif sorted_index and #State.sorted_keys >= 1 then
+					M.open(State.sorted_keys[1])
 				else
 					update_term_winbar()
 				end
@@ -585,7 +560,7 @@ function M.setup(user_options)
 		end,
 	})
 
-	api_funcs.create_autocmd("FileType", {
+	api.nvim_create_autocmd("FileType", {
 		group = group,
 		pattern = ft,
 		callback = function()
@@ -607,7 +582,7 @@ function M.setup(user_options)
 			startinsert()
 			vim.keymap.set("t", options.new_tab_mapping, function()
 				local bufname = get_or_create_term(term_current)
-				smooth_new_terminal(bufname, api_funcs.get_current_tabpage(), nil, {})
+				smooth_new_terminal(bufname, api.nvim_get_current_tabpage(), nil, {})
 			end, { buffer = true })
 		end,
 	})
