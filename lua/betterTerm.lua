@@ -130,7 +130,7 @@ local function smooth_open(bufname, current_tab)
 	term.tabpage = current_tab
 	cmd.b(term.bufid)
 	term.winid = api.nvim_get_current_win()
-	term.jobid = vim.b.terminal_jobid
+	term.jobid = vim.bo.channel
 	vim.bo.ft = ft
 	update_term_winbar()
 end
@@ -256,7 +256,7 @@ local function smooth_new_terminal(bufname, tabpage, cmd_buf, opts)
 	-- the buffer's old name, so we clean it up here to avoid having *two* terminals
 	-- for every *one* we wanted to create
 	term.bufid = api.nvim_buf_get_number(0)
-	term.jobid = vim.b.terminal_jobid
+	term.jobid = vim.bo.channel
 	update_term_winbar()
 	cmd("bwipeout! #")
 end
