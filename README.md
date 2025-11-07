@@ -141,7 +141,7 @@ require('betterTerm').setup {
 require('betterTerm').setup {
 	prefix = "Term",
 	position = "bot",
-	size = math.floor(vim.o.columns / 2),
+	size = math.floor(vim.o.lines/ 2),
 	startInserted = true,
 	show_tabs = true,
 	new_tab_mapping = "<C-t>",
