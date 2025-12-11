@@ -353,6 +353,31 @@ function M.open(id, opts)
 	end
 end
 
+-- Close terminal
+--@param id string | number | nil
+function M.close(id)
+	local index
+	if type(id) == "number" then
+		index = id
+	elseif type(id) == "string" then
+		index = State.term_lookup[id]
+		if not index then
+			print("Term not valid: " .. id)
+			return
+		end
+	else
+		index = options.index_base
+	end
+
+	local term = State.terms[index]
+	if not term or not api.nvim_buf_is_valid(term.bufid) then
+		print("Term not valid or already closed: " .. get_bufname_by_index(index))
+		return
+	end
+
+	cmd("bwipeout! " .. term.bufid)
+end
+
 -- Switch to terminal
 function M.switch_to(bufname)
 	smooth_open(bufname)
