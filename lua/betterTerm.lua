@@ -599,6 +599,7 @@ function M.setup(user_options)
 				statuscolumn = "",
 				cursorline = false,
 				cursorcolumn = false,
+				spell = false,
 			}
 			for key, value in pairs(opts) do
 				vim.opt_local[key] = value
