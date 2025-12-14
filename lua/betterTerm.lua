@@ -14,6 +14,7 @@ local options = {
 	new_tab_hl = "BetterTermSymbol",
 	new_tab_icon = "+",
 	index_base = 0,
+	predefined = {}, -- Terminales pre-creadas: {index = 0, name = "Main"}, ...
 }
 
 -- Global state
@@ -60,7 +61,8 @@ local function generate_winbar_tabs()
 		local index = State.term_lookup[bufname]
 		if index then
 			local term = State.terms[index]
-			if api.nvim_buf_is_valid(term.bufid) then
+			-- Show tab if buffer is valid OR if it's a predefined terminal without a buffer yet
+			if api.nvim_buf_is_valid(term.bufid) or term.bufid == -1 then
 				if bufname == active_term_bufname then
 					tabs[#tabs + 1] = term.on_click_active
 				else
@@ -531,6 +533,65 @@ function M.toggle_tabs()
 	end
 end
 
+-- Initialize predefined terminals
+local function initialize_predefined_terminals()
+	if vim.tbl_isempty(options.predefined) then
+		return
+	end
+
+	for _, term_config in ipairs(options.predefined) do
+		if term_config.index ~= nil then
+			-- Create terminal configuration without creating the actual buffer
+			get_or_create_term(term_config.index)
+			local index = term_config.index
+			local term = State.terms[index]
+
+			-- If a custom name is provided, use it; otherwise keep the default
+			if term_config.name then
+				local new_bufname = term_config.name .. " (" .. index .. ")"
+
+				-- Update the key in sorted_keys
+				local old_key_index = indexOf(State.sorted_keys, term.bufname)
+				if old_key_index then
+					State.sorted_keys[old_key_index] = new_bufname
+				end
+
+				-- Update the lookup table
+				State.term_lookup[new_bufname] = index
+				State.term_lookup[term.bufname] = nil
+
+				-- Update term object
+				term.name = term_config.name
+				term.bufname = new_bufname
+
+				-- Update clickable callbacks
+				local on_click_inactive = get_inactive_clickable_tab(new_bufname)
+				term.on_click_inactive = on_click_inactive
+				term.on_click_active = on_click_inactive:gsub(options.inactive_tab_hl, options.active_tab_hl)
+			end
+		end
+	end
+end
+
+-- Setup keymaps for predefined terminals (available globally, not just in terminal mode)
+local function setup_predefined_keymaps()
+	if vim.tbl_isempty(options.predefined) then
+		return
+	end
+
+	for _, term_config in ipairs(options.predefined) do
+		if term_config.index ~= nil then
+			local index = term_config.index
+			local keymap = options.jump_tab_mapping:gsub("$tab", index)
+			
+			-- Create a global keymap that works in both normal and terminal mode
+			vim.keymap.set({ "n", "t" }, keymap, function()
+				M.open(index)
+			end, { desc = "Toggle BetterTerm #" .. index, silent = true, noremap = true })
+		end
+	end
+end
+
 --@class UserOptions
 --@field prefix string
 --@field position string
@@ -552,6 +613,12 @@ function M.setup(user_options)
 	end
 	startinsert = options.startInserted and cmd.startinsert or function() end
 	open_buf = options.position .. " sb "
+
+	-- Initialize predefined terminals
+	initialize_predefined_terminals()
+
+	-- Setup keymaps for predefined terminals
+	setup_predefined_keymaps()
 
 	local group = api.nvim_create_augroup("BetterTerm", { clear = true })
 
