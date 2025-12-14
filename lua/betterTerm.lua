@@ -3,6 +3,7 @@ local api, fn, cmd, uv = vim.api, vim.fn, vim.cmd, vim.uv
 -- Default configuration
 local options = {
 	prefix = "Term",
+	names = {},
 	position = "bot",
 	size = math.floor(vim.o.lines / 2),
 	startInserted = true,
@@ -114,7 +115,8 @@ local function get_bufname_by_index(index)
 	if State.terms[index] then
 		return State.terms[index].bufname
 	end
-	return options.prefix .. " (" .. index .. ")"
+	local name = options.names[index] or options.prefix
+	return name .. " (" .. index .. ")"
 end
 
 -- Open terminal
@@ -139,7 +141,7 @@ end
 ---@param index number
 ---@return string bufname
 local function insert_new_term_config(index)
-	local name = options.prefix
+	local name = options.names[index] or options.prefix
 	local bufname = name .. " (" .. index .. ")"
 	local on_click_inactive = get_inactive_clickable_tab(bufname)
 

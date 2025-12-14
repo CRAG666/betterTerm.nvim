@@ -117,12 +117,18 @@ require('betterTerm').setup {
   position = "right",
   size = 80,
   jump_tab_mapping = "<A-$tab>", -- Alt+1, Alt+2, ...
+  names = {
+    [1] = "Main",    -- Terminal 1 will be named "Main (1)"
+    [2] = "Server",  -- Terminal 2 will be named "Server (2)"
+    [3] = "Tests",   -- Terminal 3 will be named "Tests (3)"
+  },
 }
 ```
 
 #### Options
 
 - `prefix` (string, default: `Term`): Prefix for terminal buffer names. The final name will be `prefix (index)`.
+- `names` (table, default: `{}`): Custom names for specific terminal indices. When set, terminals will use these names instead of the generic prefix.
 - `position` (string, default: `bot`): Position to open the terminal (`:h opening-window`).
 - `size` (number, default: `vim.o.lines / 2`): Size of the terminal window.
 - `startInserted` (boolean, default: `true`): Start in insert mode when a terminal is opened.
@@ -140,6 +146,7 @@ require('betterTerm').setup {
 ```lua
 require('betterTerm').setup {
 	prefix = "Term",
+	names = {},
 	position = "bot",
 	size = math.floor(vim.o.lines/ 2),
 	startInserted = true,
