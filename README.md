@@ -117,6 +117,11 @@ require('betterTerm').setup {
   position = "right",
   size = 80,
   jump_tab_mapping = "<A-$tab>", -- Alt+1, Alt+2, ...
+  predefined = {
+    { index = 0, name = "Main" },
+    { index = 1, name = "Server" },
+    { index = 2, name = "Tests" },
+  },
 }
 ```
 
@@ -134,6 +139,7 @@ require('betterTerm').setup {
 - `new_tab_hl` (string, default: `BetterTermSymbol`): Highlight group for the new tab icon.
 - `new_tab_icon` (string, default: `+`): Icon for the new tab button.
 - `index_base` (number, default: `0`): The starting index number for terminals.
+- `predefined` (table, default: `{}`): Pre-configured terminals that will be initialized when the plugin starts.
 
 #### Default values
 
@@ -151,6 +157,7 @@ require('betterTerm').setup {
 	new_tab_hl = "BetterTermSymbol",
 	new_tab_icon = "+",
 	index_base = 0,
+	predefined = {},
 }
 ```
 
