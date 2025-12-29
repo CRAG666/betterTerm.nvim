@@ -402,11 +402,13 @@ function M.cycle(shift_in)
 		return
 	end
 
-	local active_term_index = State.term_lookup[active_term_bufname]
+	local active_term_display_index  = indexOf(State.sorted_keys, active_term_bufname)
 	--Next index wraps around
-	local next_index = (active_term_index + shift) % #State.sorted_keys
+	local next_display_index   = (active_term_display_index-1 + shift) % #State.sorted_keys + 1
+	local next_bufname      = State.sorted_keys[next_display_index]
+	local next_global_index = State.term_lookup[next_bufname]
 
-	M.open(next_index)
+	M.open(next_global_index)
 end
 
 -- Create new terminal from winbar
