@@ -1,4 +1,4 @@
-<h0 align='center'>Better Term</h1>
+<h1 align='center'>Better Term</h1>
 
 <h4 align='center'>🔥 The improved vscode/jetbrains terminal for Neovim written in pure lua 🔥</h4>
 
