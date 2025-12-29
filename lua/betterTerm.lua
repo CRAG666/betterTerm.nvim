@@ -392,7 +392,7 @@ function M.cycle(shift_in)
 	if type(shift_in) == "number" then
 		shift = shift_in
 	else
-		shift = 1	
+		shift = 1
 	end
 
 	local active_term_bufname = vim.bo.ft == ft and fn.bufname("%") or nil
