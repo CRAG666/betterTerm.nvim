@@ -11,7 +11,7 @@ https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-
 I like the concept of vscode terminal, if you are like me, this complement will be the best of your options.
 Normally I like to stay inside the editor, if I can make coffee in the editor, believe me I would do it. So having an integrated terminal is the most sensible option, however I tried for a long time to use the integrated terminal of neovim and I didn't get used to write so much to do what I wanted, so I tried and tried plugins, which were not for me, I just wanted something simple and usable, without so many complications. Then as other times I started to program and from that Saturday afternoon came out this plugin. I hope you enjoy it and make all your PR's.
 
-By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just 599 lines!!!.
+By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just ~700 lines!!!.
 
 https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
 
@@ -65,7 +65,7 @@ use { 'CRAG666/betterTerm.nvim' }
 The following functions are exposed for you to use:
 
 - `open({id}, {opts})`: Opens, focuses, or creates a terminal. If the terminal is already visible, it hides it.
-  - `{id}` (string|number|nil): The terminal index (number) or buffer name (string) to open. Defaults to `index_base`.
+  - `{id}` (string|number|nil): The (global) terminal index (number) or buffer name (string) to open. Defaults to `index_base`.
   - `{opts}` (table|nil): Options for opening.
     - `cwd` (string): Set the working directory for a new terminal.
 
@@ -82,6 +82,9 @@ The following functions are exposed for you to use:
 
 - `toggle_tabs()`: Toggles the visibility of the terminal tabs in the winbar.
 
+- `cycle({shift_in})`: Switches focus to a terminal `shift_in` to the right of the current displayed terminal (wraps around).
+  - `{shift_in}` (number): the distance of the shift. Defaults to `1`.
+
 ### Recommended keymaps
 
 No keymaps are set by default. Here are some recommendations:
@@ -94,6 +97,12 @@ vim.keymap.set({"n", "t"}, "<C-;>", function() betterTerm.open() end, { desc = "
 
 -- Open a specific terminal
 vim.keymap.set({"n", "t"}, "<C-/>", function() betterTerm.open(1) end, { desc = "Toggle terminal 1" })
+
+-- Cycle to the right
+vim.keymap.set({"n", "t"}, "<C-PageUp>", function() betterTerm.cycle(1) end, { desc = "Cycle terminals to the right" })
+
+-- Cycle to the left
+vim.keymap.set({"n", "t"}, "<C-PageDown>", function() betterTerm.cycle(-1) end, { desc = "Cycle terminals to the left" })
 
 -- Select a terminal to focus
 vim.keymap.set("n", "<leader>tt", betterTerm.select, { desc = "Select terminal" })

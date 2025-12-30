@@ -385,6 +385,32 @@ function M.switch_to(bufname)
 	smooth_open(bufname)
 end
 
+-- Switch to the (current term + shift)th terminal
+--@param shift_in number | nil
+function M.cycle(shift_in)
+	local shift
+	if type(shift_in) == "number" then
+		shift = shift_in
+	else
+		shift = 1
+	end
+
+	local active_term_bufname = vim.bo.ft == ft and fn.bufname("%") or nil
+
+	--Do nothing if no terminal is active
+	if not (type(active_term_bufname) == "string") then
+		return
+	end
+
+	local active_term_display_index  = indexOf(State.sorted_keys, active_term_bufname)
+	--Next index wraps around
+	local next_display_index   = (active_term_display_index-1 + shift) % #State.sorted_keys + 1
+	local next_bufname      = State.sorted_keys[next_display_index]
+	local next_global_index = State.term_lookup[next_bufname]
+
+	M.open(next_global_index)
+end
+
 -- Create new terminal from winbar
 local function new_term_from_winbar()
 	local bufname = get_or_create_term(term_current)
@@ -583,7 +609,7 @@ local function setup_predefined_keymaps()
 		if term_config.index ~= nil then
 			local index = term_config.index
 			local keymap = options.jump_tab_mapping:gsub("$tab", index)
-			
+
 			-- Create a global keymap that works in both normal and terminal mode
 			vim.keymap.set({ "n", "t" }, keymap, function()
 				M.open(index)
