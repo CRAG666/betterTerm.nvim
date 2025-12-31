@@ -22,7 +22,7 @@ local State = {
 	terms = {}, -- Keyed by numerical index
 	term_lookup = {}, -- Keyed by bufname, value is index
 	sorted_keys = {}, -- Holds bufnames for ordered display
-	last_term_id = 1  -- For opening whole window with terminals. Fallback value, otherwise is set in setup.
+	last_term_id = 0  -- For opening whole window with terminals. Fallback value, otherwise is set in setup (in initialize_predefined_terminals).
 }
 local ft = "better_term"
 local term_current = options.index_base
@@ -423,16 +423,16 @@ function M.cycle(shift_in)
 	M.open(next_global_index)
 end
 
---Toggles the window with all terminals
+-- Toggles the window with all terminals
 function M.toggle_termwindow()
 	local active_term_bufname = vim.bo.ft == ft and fn.bufname("%") or nil
 
 	if active_term_bufname == nil then
 		M.open(State.last_term_id)
-	else
-		active_term_id = State.term_lookup[active_term_bufname]
-		M.open(active_term_bufname)
+		return
 	end
+
+	M.open(active_term_bufname)
 end
 
 -- Create new terminal from winbar
@@ -621,7 +621,7 @@ local function initialize_predefined_terminals()
 			end
 		end
 	end
-	State.last_term_id = State.term_lookup[State.sorted_keys[1]]
+	State.last_term_id = State.term_lookup[State.sorted_keys[1]] --Setting the default value of last_term_id on startup
 end
 
 -- Setup keymaps for predefined terminals (available globally, not just in terminal mode)
