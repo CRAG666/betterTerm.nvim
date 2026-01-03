@@ -21,6 +21,7 @@ https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-
 
 ## Install
 
+
 - With **Native installer** (*Neovim >= 0.12*)
 
 ```lua
@@ -84,6 +85,8 @@ The following functions are exposed for you to use:
 
 - `cycle({shift_in})`: Switches focus to a terminal `shift_in` to the right of the current displayed terminal (wraps around).
   - `{shift_in}` (number): the distance of the shift. Defaults to `1`.
+
+- `toggle_termwindow()`: Toggles the visibility of the the window with all terminals. Remembers last active terminal.
 
 ### Recommended keymaps
 
