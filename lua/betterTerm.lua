@@ -22,7 +22,8 @@ local State = {
 	terms = {}, -- Keyed by numerical index
 	term_lookup = {}, -- Keyed by bufname, value is index
 	sorted_keys = {}, -- Holds bufnames for ordered display
-	last_term_id = 0  -- For opening whole window with terminals. Fallback value, otherwise is set in setup (in initialize_predefined_terminals).
+	last_term_id = 0,  -- For opening whole window with terminals. Fallback value, otherwise is set in setup (in initialize_predefined_terminals).
+	last_normal = nil, -- Last non-terminal window view for cursor restore
 }
 local ft = "better_term"
 local term_current = options.index_base
@@ -328,6 +329,14 @@ function M.open(id, opts)
 		index = options.index_base
 	end
 
+	if vim.bo.ft ~= ft then
+		State.last_normal = {
+			winid = api.nvim_get_current_win(),
+			tabpage = api.nvim_get_current_tabpage(),
+			view = fn.winsaveview(),
+		}
+	end
+
 	local bufname = get_or_create_term(index)
 	local term = State.terms[index]
 	local cur_tab = api.nvim_get_current_tabpage()
@@ -360,8 +369,22 @@ function M.open(id, opts)
 
 	--Else: terminal window is showing and we are focused on the current terminal: close terminal.
 	State.last_term_id = State.term_lookup[term.bufname]  --Save last open terminal
-	vim.cmd("wincmd p") --Return to previously used window before closing
-	api.nvim_win_hide(bufinfo.windows[1])
+	local term_winid = bufinfo.windows[1]
+	local last = State.last_normal
+	if last and last.winid and api.nvim_win_is_valid(last.winid) then
+		local ok, last_tab = pcall(api.nvim_win_get_tabpage, last.winid)
+		if ok and last_tab == cur_tab then
+			api.nvim_set_current_win(last.winid)
+			if last.view then
+				fn.winrestview(last.view)
+			end
+		else
+			vim.cmd("wincmd p")
+		end
+	else
+		vim.cmd("wincmd p")
+	end
+	api.nvim_win_hide(term_winid)
 	if cur_tab ~= term.tabpage then
 		switch_tab()
 	end
@@ -713,6 +736,7 @@ function M.setup(user_options)
 				relativenumber = false,
 				number = false,
 				readonly = true,
+				wrap = true,
 				scl = "no",
 				statuscolumn = "",
 				cursorline = false,

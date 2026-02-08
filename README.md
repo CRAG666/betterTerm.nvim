@@ -70,6 +70,9 @@ The following functions are exposed for you to use:
   - `{opts}` (table|nil): Options for opening.
     - `cwd` (string): Set the working directory for a new terminal.
 
+- `close({id})`: Closes a terminal by id or buffer name.
+  - `{id}` (string|number|nil): The (global) terminal index (number) or buffer name (string) to close. Defaults to `index_base`.
+
 - `send({command}, {index}, {press})`: Sends a command to a specific terminal.
   - `{command}` (string): The command to execute.
   - `{index}` (number|nil): The terminal index. Defaults to `1`.
