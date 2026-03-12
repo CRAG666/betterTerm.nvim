@@ -684,6 +684,7 @@ end
 function M.setup(user_options)
 	if user_options then
 		options = vim.tbl_deep_extend("force", options, user_options)
+		State.last_term_id = options.index_base
 	end
 	startinsert = options.startInserted and cmd.startinsert or function() end
 	open_buf = options.position .. " sb "
