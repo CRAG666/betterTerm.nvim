@@ -142,7 +142,8 @@ require('betterTerm').setup {
 
 #### Options
 
-- `prefix` (string, default: `Term`): Prefix for terminal buffer names. The final name will be `prefix (index)`.
+- `prefix` (string, default: `Term`): Prefix for terminal buffer names. The final name will be `prefix (index)` with the default `bufname_format`.
+- `bufname_format` (function, default: `function(prefix, index) return prefix .. " (" .. index .. ")" end`): Function to customize the buffer name format. Receives `prefix` (string) and `index` (number) as arguments and should return a string.
 - `position` (string, default: `bot`): Position to open the terminal (`:h opening-window`).
 - `size` (number, default: `vim.o.lines / 2`): Size of the terminal window.
 - `startInserted` (boolean, default: `true`): Start in insert mode when a terminal is opened.
@@ -161,6 +162,9 @@ require('betterTerm').setup {
 ```lua
 require('betterTerm').setup {
 	prefix = "Term",
+	bufname_format = function(prefix, index)
+		return prefix .. " (" .. index .. ")"
+	end,
 	position = "bot",
 	size = math.floor(vim.o.lines/ 2),
 	startInserted = true,
