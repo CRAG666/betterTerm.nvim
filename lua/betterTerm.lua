@@ -3,6 +3,10 @@ local api, fn, cmd, uv = vim.api, vim.fn, vim.cmd, vim.uv
 -- Default configuration
 local options = {
 	prefix = "Term",
+	---@type fun(prefix: string, index: number): string
+	bufname_format = function(prefix, index)
+		return prefix .. " (" .. index .. ")"
+	end,
 	position = "bot",
 	size = math.floor(vim.o.lines / 2),
 	startInserted = true,
@@ -118,7 +122,7 @@ local function get_bufname_by_index(index)
 	if State.terms[index] then
 		return State.terms[index].bufname
 	end
-	return options.prefix .. " (" .. index .. ")"
+	return options.bufname_format(options.prefix, index)
 end
 
 -- Open terminal
@@ -144,7 +148,7 @@ end
 ---@return string bufname
 local function insert_new_term_config(index)
 	local name = options.prefix
-	local bufname = name .. " (" .. index .. ")"
+	local bufname = options.bufname_format(name, index)
 	local on_click_inactive = get_inactive_clickable_tab(bufname)
 
 	State.terms[index] = {
@@ -553,7 +557,7 @@ function M.rename()
 			return
 		end
 
-		local new_bufname = new_base_name .. " (" .. index .. ")"
+		local new_bufname = options.bufname_format(new_base_name, index)
 
 		if State.term_lookup[new_bufname] then
 			print("Terminal with name '" .. new_bufname .. "' already exists.")
@@ -621,7 +625,7 @@ local function initialize_predefined_terminals()
 
 			-- If a custom name is provided, use it; otherwise keep the default
 			if term_config.name then
-				local new_bufname = term_config.name .. " (" .. index .. ")"
+				local new_bufname = options.bufname_format(term_config.name, index)
 
 				-- Update the key in sorted_keys
 				local old_key_index = indexOf(State.sorted_keys, term.bufname)
