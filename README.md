@@ -4,7 +4,7 @@
 
 ![Image](https://github.com/user-attachments/assets/17645559-68c4-4b6e-a048-427954703779)
 
-https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-9e85-2b2cbe5287f6.mp4
+<https://user-images.githubusercontent.com/34254373/196014979-fdf2f741-1b72-4810-9e85-2b2cbe5287f6.mp4>
 
 # Introduction
 
@@ -13,14 +13,13 @@ Normally I like to stay inside the editor, if I can make coffee in the editor, b
 
 By the way, it's called betterTerm, because it's the best for me. But for you it could very well suck. Plugin of just ~700 lines!!!.
 
-https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4
+<https://user-images.githubusercontent.com/34254373/196015142-39895e93-eacd-4c48-9246-f4b7c6fbf076.mp4>
 
 ## Requirements
 
 - Neovim (>= 0.10)
 
 ## Install
-
 
 - With **Native installer** (*Neovim >= 0.12*)
 
@@ -45,7 +44,6 @@ require('betterTerm').setup()
 ```lua
 use { 'CRAG666/betterTerm.nvim' }
 ```
-
 
 ## Quick start
 
@@ -161,22 +159,22 @@ require('betterTerm').setup {
 
 ```lua
 require('betterTerm').setup {
-	prefix = "Term",
-	bufname_format = function(prefix, index)
-		return prefix .. " (" .. index .. ")"
-	end,
-	position = "bot",
-	size = math.floor(vim.o.lines/ 2),
-	startInserted = true,
-	show_tabs = true,
-	new_tab_mapping = "<C-t>",
-	jump_tab_mapping = "<C-$tab>",
-	active_tab_hl = "TabLineSel",
-	inactive_tab_hl = "TabLine",
-	new_tab_hl = "BetterTermSymbol",
-	new_tab_icon = "+",
-	index_base = 0,
-	predefined = {},
+ prefix = "Term",
+ bufname_format = function(prefix, index)
+  return prefix .. " (" .. index .. ")"
+ end,
+ position = "bot",
+ size = math.floor(vim.o.lines/ 2),
+ startInserted = true,
+ show_tabs = true,
+ new_tab_mapping = "<C-t>",
+ jump_tab_mapping = "<C-$tab>",
+ active_tab_hl = "TabLineSel",
+ inactive_tab_hl = "TabLine",
+ new_tab_hl = "BetterTermSymbol",
+ new_tab_icon = "+",
+ index_base = 0,
+ predefined = {},
 }
 ```
 
@@ -221,19 +219,19 @@ return {
 ```
 
 #### My native config
-```python
-  vim.pack.add({"https://github.com/CRAG666/betterTerm.nvim"})
-  require('betterTerm').setup({
-    position = 'vert',
-    size = math.floor(vim.o.columns / 2),
-    jump_tab_mapping = '<A-$tab>',
-  })
+
+```lua
+vim.pack.add({"https://github.com/CRAG666/betterTerm.nvim"})
+require('betterTerm').setup({
+  position = 'vert',
+  size = math.floor(vim.o.columns / 2),
+  jump_tab_mapping = '<A-$tab>',
+})
 ```
 
 # Contributing
 
 Your help is needed to make this plugin the best of its kind, be free to contribute, criticize (don't be soft) or contribute ideas. All PR's are welcome.
 
-## :warning: Important!
-
-If you have any ideas to improve this project, do not hesitate to make a request, if problems arise, try to solve them and publish them. Don't be so picky I did this in one afternoon
+> [!IMPORTANT]
+> If you have any ideas to improve this project, do not hesitate to make a request, if problems arise, try to solve them and publish them. Don't be so picky I did this in one afternoon
