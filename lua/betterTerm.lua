@@ -1,6 +1,23 @@
 local api, fn, cmd, uv = vim.api, vim.fn, vim.cmd, vim.uv
 
+---@class UserOptions
+---@field prefix string
+---@field bufname_format fun(prefix: string, index: number): string
+---@field position string
+---@field size integer
+---@field startInserted boolean
+---@field show_tabs boolean
+---@field new_tab_mapping string
+---@field jump_tab_mapping string
+---@field active_tab_hl string
+---@field inactive_tab_hl string
+---@field new_tab_hl string
+---@field new_tab_icon string
+---@field index_base integer
+---@field predefined {index:integer, name:string}
+
 -- Default configuration
+---@type UserOptions
 local options = {
   prefix = "Term",
   ---@type fun(prefix: string, index: number): string
@@ -317,8 +334,8 @@ local function get_or_create_term(index)
 end
 
 -- Open terminal
---@param id string | number | nil
---@param opts? BetterTermOpenOptions
+---@param id string | number | nil
+---@param opts? BetterTermOpenOptions
 function M.open(id, opts)
   local index
   if type(id) == "number" then
@@ -470,9 +487,9 @@ local function new_term_from_winbar()
 end
 _G.BetterTerm.new_term_from_winbar = new_term_from_winbar
 
---@class Press
---@field clean boolean
---@field interrupt boolean
+---@class Press
+---@field clean boolean
+---@field interrupt boolean
 
 -- Precompiled termcodes
 local termcodes = {}
@@ -487,9 +504,9 @@ local function init_termcodes()
 end
 
 -- Send command to terminal
---@param command string
---@param index number | nil
---@param press Press | nil
+---@param command string
+---@param index number | nil
+---@param press Press | nil
 function M.send(command, index, press)
   index = index or 1
   local current_term = State.terms[index]
@@ -670,21 +687,8 @@ local function setup_predefined_keymaps()
   end
 end
 
---@class UserOptions
---@field prefix string
---@field position string
---@field size string
---@field startInserted boolean
---@field show_tabs boolean
---@field new_tab_mapping string
---@field jump_tab_mapping string
---@field active_tab_hl string
---@field inactive_tab_hl string
---@field new_tab_hl string
---@field new_tab_icon string
-
 -- Configuration
---@param user_options UserOptions | nil
+---@param user_options UserOptions | nil
 function M.setup(user_options)
   if user_options then
     options = vim.tbl_deep_extend("force", options, user_options)
