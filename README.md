@@ -80,7 +80,8 @@ The following functions are exposed for you to use:
 
 - `select()`: Shows a list of open terminals using `vim.ui.select` to switch to or focus one.
 
-- `rename()`: Renames the current active terminal. It will prompt for a new name.
+- `rename({new_name})`: Renames the current active terminal.
+  - `{new_name}` (string|nil): The new prefix for the current active terminal. If `nil`, prompts for user input.
 
 - `toggle_tabs()`: Toggles the visibility of the terminal tabs in the winbar.
 

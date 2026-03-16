@@ -561,7 +561,8 @@ function M.select()
 end
 
 -- Rename current terminal
-function M.rename()
+---@param new_name string|nil
+function M.rename(new_name)
   if vim.bo.ft ~= ft then
     print("Not in a betterTerm window")
     return
@@ -575,7 +576,18 @@ function M.rename()
   end
 
   local term = State.terms[index]
-  vim.ui.input({ prompt = "New name for terminal (" .. index .. "):", default = term.name }, function(new_base_name)
+  local input_wrapper = function(callback)
+    if new_name then
+      callback(new_name)
+    else
+      vim.ui.input({
+        prompt = "New name for terminal (" .. index .. "):",
+        default = term.name,
+      }, callback)
+    end
+  end
+
+  input_wrapper(function(new_base_name)
     if not new_base_name or new_base_name == "" then
       print("Rename cancelled.")
       return
