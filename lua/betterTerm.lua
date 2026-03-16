@@ -5,7 +5,7 @@ local api, fn, cmd, uv = vim.api, vim.fn, vim.cmd, vim.uv
 ---@field bufname_format fun(prefix: string, index: number): string
 ---@field position string
 ---@field size integer
----@field startInserted boolean
+---@field startInserted boolean | fun():boolean
 ---@field show_tabs boolean
 ---@field new_tab_mapping string
 ---@field jump_tab_mapping string
@@ -53,7 +53,6 @@ local last_winbar_text = nil
 local clickable_new = ""
 local M = {}
 local open_buf = ""
-local startinsert = function() end
 _G.BetterTerm = _G.BetterTerm or {}
 _G.BetterTerm.switch_funcs = _G.BetterTerm.switch_funcs or {}
 
@@ -117,6 +116,14 @@ local function update_term_winbar()
         api.nvim_win_set_option(term.winid, "winbar", winbar_text)
       end
     end
+  end
+end
+
+local function startinsert()
+  if type(options.startInserted) == "function" and options.startInserted() then
+    cmd.startinsert()
+  elseif options.startInserted == true then
+    cmd.startinsert()
   end
 end
 
@@ -694,7 +701,6 @@ function M.setup(user_options)
     options = vim.tbl_deep_extend("force", options, user_options)
     State.last_term_id = options.index_base
   end
-  startinsert = options.startInserted and cmd.startinsert or function() end
   open_buf = options.position .. " sb "
 
   -- Initialize predefined terminals
