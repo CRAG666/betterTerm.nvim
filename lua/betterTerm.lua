@@ -712,6 +712,7 @@ function M.setup(user_options)
   if user_options then
     options = vim.tbl_deep_extend("force", options, user_options)
     State.last_term_id = options.index_base
+    term_current = options.index_base
   end
   open_buf = options.position .. " sb "
 
