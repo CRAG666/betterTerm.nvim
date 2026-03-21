@@ -520,20 +520,16 @@ function M.send(command, index, press)
 
   if not current_term then
     M.open(index)
-    uv.sleep(100)
     current_term = State.terms[index]
   end
 
   init_termcodes()
   if press then
     if press.interrupt and press.clean then
-      uv.sleep(100)
       api.nvim_chan_send(current_term.jobid, termcodes.ctrl_c_l)
     elseif press.interrupt then
-      uv.sleep(100)
       api.nvim_chan_send(current_term.jobid, termcodes.ctrl_c)
     elseif press.clean then
-      uv.sleep(100)
       api.nvim_chan_send(current_term.jobid, termcodes.ctrl_l)
     end
   end
