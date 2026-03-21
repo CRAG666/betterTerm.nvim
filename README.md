@@ -80,7 +80,8 @@ The following functions are exposed for you to use:
 
 - `select()`: Shows a list of open terminals using `vim.ui.select` to switch to or focus one.
 
-- `rename()`: Renames the current active terminal. It will prompt for a new name.
+- `rename({new_name})`: Renames the current active terminal.
+  - `{new_name}` (string|nil): The new prefix for the current active terminal. If `nil`, prompts for user input.
 
 - `toggle_tabs()`: Toggles the visibility of the terminal tabs in the winbar.
 
@@ -144,7 +145,7 @@ require('betterTerm').setup {
 - `bufname_format` (function, default: `function(prefix, index) return prefix .. " (" .. index .. ")" end`): Function to customize the buffer name format. Receives `prefix` (string) and `index` (number) as arguments and should return a string.
 - `position` (string, default: `bot`): Position to open the terminal (`:h opening-window`).
 - `size` (number, default: `vim.o.lines / 2`): Size of the terminal window.
-- `startInserted` (boolean, default: `true`): Start in insert mode when a terminal is opened.
+- `startInserted` (boolean | fun():boolean, default: `true`): Start in insert mode when a terminal is opened.
 - `show_tabs` (boolean, default: `true`): Enable/Disable the tabs bar.
 - `new_tab_mapping` (string, default: `<C-t>`): Mapping to create a new terminal from within a terminal buffer.
 - `jump_tab_mapping` (string, default: `<C-$tab>`): Mapping to jump to a specific terminal tab. `$tab` is replaced with the terminal index.

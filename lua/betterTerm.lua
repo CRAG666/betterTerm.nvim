@@ -1,6 +1,23 @@
 local api, fn, cmd, uv = vim.api, vim.fn, vim.cmd, vim.uv
 
+---@class UserOptions
+---@field prefix string
+---@field bufname_format fun(prefix: string, index: number): string
+---@field position string
+---@field size integer
+---@field startInserted boolean | fun():boolean
+---@field show_tabs boolean
+---@field new_tab_mapping string
+---@field jump_tab_mapping string
+---@field active_tab_hl string
+---@field inactive_tab_hl string
+---@field new_tab_hl string
+---@field new_tab_icon string
+---@field index_base integer
+---@field predefined {index:integer, name:string}
+
 -- Default configuration
+---@type UserOptions
 local options = {
   prefix = "Term",
   ---@type fun(prefix: string, index: number): string
@@ -36,7 +53,6 @@ local last_winbar_text = nil
 local clickable_new = ""
 local M = {}
 local open_buf = ""
-local startinsert = function() end
 _G.BetterTerm = _G.BetterTerm or {}
 _G.BetterTerm.switch_funcs = _G.BetterTerm.switch_funcs or {}
 
@@ -100,6 +116,14 @@ local function update_term_winbar()
         api.nvim_win_set_option(term.winid, "winbar", winbar_text)
       end
     end
+  end
+end
+
+local function startinsert()
+  if type(options.startInserted) == "function" and options.startInserted() then
+    cmd.startinsert()
+  elseif options.startInserted == true then
+    cmd.startinsert()
   end
 end
 
@@ -317,8 +341,8 @@ local function get_or_create_term(index)
 end
 
 -- Open terminal
---@param id string | number | nil
---@param opts? BetterTermOpenOptions
+---@param id string | number | nil
+---@param opts? BetterTermOpenOptions
 function M.open(id, opts)
   local index
   if type(id) == "number" then
@@ -470,9 +494,9 @@ local function new_term_from_winbar()
 end
 _G.BetterTerm.new_term_from_winbar = new_term_from_winbar
 
---@class Press
---@field clean boolean
---@field interrupt boolean
+---@class Press
+---@field clean boolean
+---@field interrupt boolean
 
 -- Precompiled termcodes
 local termcodes = {}
@@ -487,9 +511,9 @@ local function init_termcodes()
 end
 
 -- Send command to terminal
---@param command string
---@param index number | nil
---@param press Press | nil
+---@param command string
+---@param index number | nil
+---@param press Press | nil
 function M.send(command, index, press)
   index = index or 1
   local current_term = State.terms[index]
@@ -537,7 +561,8 @@ function M.select()
 end
 
 -- Rename current terminal
-function M.rename()
+---@param new_name string|nil
+function M.rename(new_name)
   if vim.bo.ft ~= ft then
     print("Not in a betterTerm window")
     return
@@ -551,7 +576,18 @@ function M.rename()
   end
 
   local term = State.terms[index]
-  vim.ui.input({ prompt = "New name for terminal (" .. index .. "):", default = term.name }, function(new_base_name)
+  local input_wrapper = function(callback)
+    if new_name then
+      callback(new_name)
+    else
+      vim.ui.input({
+        prompt = "New name for terminal (" .. index .. "):",
+        default = term.name,
+      }, callback)
+    end
+  end
+
+  input_wrapper(function(new_base_name)
     if not new_base_name or new_base_name == "" then
       print("Rename cancelled.")
       return
@@ -670,27 +706,14 @@ local function setup_predefined_keymaps()
   end
 end
 
---@class UserOptions
---@field prefix string
---@field position string
---@field size string
---@field startInserted boolean
---@field show_tabs boolean
---@field new_tab_mapping string
---@field jump_tab_mapping string
---@field active_tab_hl string
---@field inactive_tab_hl string
---@field new_tab_hl string
---@field new_tab_icon string
-
 -- Configuration
---@param user_options UserOptions | nil
+---@param user_options UserOptions | nil
 function M.setup(user_options)
   if user_options then
     options = vim.tbl_deep_extend("force", options, user_options)
     State.last_term_id = options.index_base
+    term_current = options.index_base
   end
-  startinsert = options.startInserted and cmd.startinsert or function() end
   open_buf = options.position .. " sb "
 
   -- Initialize predefined terminals
