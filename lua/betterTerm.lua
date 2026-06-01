@@ -56,10 +56,23 @@ local open_buf = ""
 _G.BetterTerm = _G.BetterTerm or {}
 _G.BetterTerm.switch_funcs = _G.BetterTerm.switch_funcs or {}
 
+-- Compute the global switch-function key for a bufname
+---@param bufname string
+---@return string
+local function switch_func_name(bufname)
+  return "switch_" .. fn.substitute(bufname, "[^A-Za-z0-9_]", "_", "g")
+end
+
+-- Remove the registered switch function for a bufname to avoid leaking closures
+---@param bufname string
+local function clear_switch_func(bufname)
+  _G.BetterTerm.switch_funcs[switch_func_name(bufname)] = nil
+end
+
 -- Get inactive clickable tab string
 ---@param bufname string
 local function get_inactive_clickable_tab(bufname)
-  local func_name = "switch_" .. fn.substitute(bufname, "[^A-Za-z0-9_]", "_", "g")
+  local func_name = switch_func_name(bufname)
   _G.BetterTerm.switch_funcs[func_name] = function()
     M.switch_to(bufname)
   end
@@ -113,7 +126,7 @@ local function update_term_winbar()
     if term.winid and api.nvim_win_is_valid(term.winid) then
       local p, term_tab = pcall(api.nvim_win_get_tabpage, term.winid)
       if p and term_tab == cur_tab then
-        api.nvim_win_set_option(term.winid, "winbar", winbar_text)
+        api.nvim_set_option_value("winbar", winbar_text, { win = term.winid })
       end
     end
   end
@@ -610,7 +623,8 @@ function M.rename(new_name)
     term.name = new_base_name
     term.bufname = new_bufname
 
-    -- Update clickable callbacks
+    -- Update clickable callbacks (drop the stale closure for the old name)
+    clear_switch_func(old_bufname)
     local on_click_inactive = get_inactive_clickable_tab(new_bufname)
     term.on_click_inactive = on_click_inactive
     term.on_click_active = on_click_inactive:gsub(options.inactive_tab_hl, options.active_tab_hl)
@@ -634,7 +648,7 @@ function M.toggle_tabs()
       if bufinfo and not bufinfo.hidden then
         for _, win in ipairs(bufinfo.windows) do
           if api.nvim_win_is_valid(win) then
-            api.nvim_win_set_option(win, "winbar", "")
+            api.nvim_set_option_value("winbar", "", { win = win })
           end
         end
       end
@@ -657,6 +671,7 @@ local function initialize_predefined_terminals()
 
       -- If a custom name is provided, use it; otherwise keep the default
       if term_config.name then
+        local old_bufname = term.bufname
         local new_bufname = options.bufname_format(term_config.name, index)
 
         -- Update the key in sorted_keys
@@ -673,7 +688,8 @@ local function initialize_predefined_terminals()
         term.name = term_config.name
         term.bufname = new_bufname
 
-        -- Update clickable callbacks
+        -- Update clickable callbacks (drop the stale default-name closure)
+        clear_switch_func(old_bufname)
         local on_click_inactive = get_inactive_clickable_tab(new_bufname)
         term.on_click_inactive = on_click_inactive
         term.on_click_active = on_click_inactive:gsub(options.inactive_tab_hl, options.active_tab_hl)
@@ -734,6 +750,7 @@ function M.setup(user_options)
       local sorted_index = indexOf(State.sorted_keys, bufname)
       State.terms[index] = nil
       State.term_lookup[bufname] = nil
+      clear_switch_func(bufname)
       if sorted_index then
         table.remove(State.sorted_keys, sorted_index)
       end
@@ -768,7 +785,7 @@ function M.setup(user_options)
         spell = false,
       }
       for key, value in pairs(opts) do
-        vim.opt_local[key] = value
+        api.nvim_set_option_value(key, value, { scope = "local" })
       end
       vim.bo.buflisted = false
       startinsert()
