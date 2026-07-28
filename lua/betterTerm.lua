@@ -1,9 +1,21 @@
 local api, fn, cmd, uv = vim.api, vim.fn, vim.cmd, vim.uv
 
+---@class FloatConfig
+---@field relative string
+---@field width number|nil
+---@field height number|nil
+---@field row number|nil
+---@field col number|nil
+---@field border string
+---@field anchor string|nil
+---@field style string
+
 ---@class UserOptions
 ---@field prefix string
 ---@field bufname_format fun(prefix: string, index: number): string
 ---@field position string
+---@field display string
+---@field float_config FloatConfig
 ---@field size integer
 ---@field startInserted boolean | fun():boolean
 ---@field show_tabs boolean
@@ -25,6 +37,17 @@ local options = {
     return prefix .. " (" .. index .. ")"
   end,
   position = "bot",
+  display = "split",
+  float_config = {
+    relative = "editor",
+    width = nil,
+    height = nil,
+    row = nil,
+    col = nil,
+    border = "rounded",
+    anchor = nil,
+    style = "minimal",
+  },
   size = math.floor(vim.o.lines / 2),
   startInserted = true,
   show_tabs = true,
@@ -48,7 +71,6 @@ local State = {
 }
 local ft = "better_term"
 local term_current = options.index_base
-local last_winbar_text = nil
 
 local clickable_new = ""
 local M = {}
@@ -116,10 +138,6 @@ local function update_term_winbar()
     return
   end
   local winbar_text = generate_winbar_tabs()
-  if last_winbar_text == winbar_text then
-    return
-  end
-  last_winbar_text = winbar_text
 
   local cur_tab = api.nvim_get_current_tabpage()
   for _, term in pairs(State.terms) do
@@ -228,9 +246,61 @@ local function get_editor_dimensions()
   return editor_dims.width, editor_dims.height
 end
 
+-- Calculate window dimension (supports ratio and absolute values)
+local function calc_dim(val, max_val, default_val)
+  if not val then
+    return default_val
+  end
+  return (val > 0 and val <= 1) and math.floor(max_val * val) or val
+end
+
+-- Calculate float window configuration
+local function get_float_config()
+  local cfg = options.float_config
+  local editor_w, editor_h = get_editor_dimensions()
+  local width = calc_dim(cfg.width, editor_w, math.floor(editor_w * 0.8))
+  local height = calc_dim(cfg.height, editor_h, options.size)
+
+  local row, col
+  if cfg.anchor then
+    local is_south = cfg.anchor:sub(1, 1) == "S"
+    local is_east = cfg.anchor:sub(2, 2) == "E"
+    row = is_south and (editor_h - (cfg.row or 0)) or (cfg.row or 0)
+    col = is_east and (editor_w - (cfg.col or 0)) or (cfg.col or 0)
+  else
+    row = cfg.row or math.floor((editor_h - height) / 2)
+    col = cfg.col or math.floor((editor_w - width) / 2)
+  end
+
+  return {
+    relative = cfg.relative or "editor",
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    border = cfg.border or "rounded",
+    anchor = cfg.anchor,
+    style = cfg.style or "minimal",
+  }
+end
+
+-- Open terminal window (split or float)
+local function open_term_win(bufid, cmd_buf)
+  if options.display == "float" then
+    return api.nvim_open_win(bufid, true, get_float_config())
+  end
+  cmd((cmd_buf or open_buf) .. bufid)
+  return api.nvim_get_current_win()
+end
+
 -- Resize terminal window
 local function resize_terminal()
   local win = api.nvim_get_current_win()
+  if options.display == "float" then
+    local float_config = get_float_config()
+    api.nvim_win_set_config(win, float_config)
+    return
+  end
   local editor_width, editor_height = get_editor_dimensions()
   local win_width, win_height = api.nvim_win_get_width(win), api.nvim_win_get_height(win)
   if win_width < editor_width then
@@ -251,8 +321,7 @@ local function show_term(bufname, tabpage)
   end
   local term = State.terms[index]
   term.tabpage = tabpage
-  cmd(open_buf .. term.bufid)
-  term.winid = api.nvim_get_current_win()
+  term.winid = open_term_win(term.bufid)
   resize_terminal()
   update_term_winbar()
   startinsert()
@@ -277,8 +346,7 @@ local function smooth_new_terminal(bufname, tabpage, cmd_buf, opts)
   cmd_buf = cmd_buf or "b"
 
   local buf = api.nvim_create_buf(true, false)
-  cmd(cmd_buf .. buf)
-  term.winid = api.nvim_get_current_win()
+  term.winid = open_term_win(buf, cmd_buf)
 
   if opts.cwd and opts.cwd ~= "." then
     local current_dir = uv.cwd()
@@ -726,7 +794,11 @@ function M.setup(user_options)
     State.last_term_id = options.index_base
     term_current = options.index_base
   end
-  open_buf = options.position .. " sb "
+  if options.display == "float" then
+    open_buf = ""
+  else
+    open_buf = options.position .. " sb "
+  end
 
   -- Initialize predefined terminals
   initialize_predefined_terminals()
