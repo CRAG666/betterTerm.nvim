@@ -546,7 +546,7 @@ function M.send(command, index, press)
       api.nvim_chan_send(current_term.jobid, termcodes.ctrl_l)
     end
   end
-  api.nvim_chan_send(current_term.jobid, command .. "\n")
+  api.nvim_chan_send(current_term.jobid, command .. (vim.fn.has("win32") == 1 and "\r\n" or "\n"))
 end
 
 -- Select terminal
