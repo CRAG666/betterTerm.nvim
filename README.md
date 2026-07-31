@@ -52,6 +52,7 @@ use { 'CRAG666/betterTerm.nvim' }
 - **Tabbed Interface**: Manage multiple terminals in a tabbed view within the winbar.
 - **Mouse Support**: Clickable tabs for easy navigation.
 - **Toggle Terminals**: Quickly open and hide terminals.
+- **Float or Split Mode**: Choose between native split layout or floating overlay windows that don't push other UIs.
 - **Rename Terminals**: Easily rename terminals like jetbrains.
 - **Multi-Terminal Management**: Easily create, switch between, rename, and manage several terminals.
 - **Send Commands**: Send commands to any terminal directly from Neovim.
@@ -139,11 +140,36 @@ require('betterTerm').setup {
 }
 ```
 
+Float mode example:
+```lua
+require('betterTerm').setup {
+  display = "float",
+    float_config = {
+      width = 1.0,
+      height = 0.35,
+      anchor = "SW",
+      row = 0,
+      col = 0,
+      border = "single",
+    },
+}
+```
+
 #### Options
 
 - `prefix` (string, default: `Term`): Prefix for terminal buffer names. The final name will be `prefix (index)` with the default `bufname_format`.
 - `bufname_format` (function, default: `function(prefix, index) return prefix .. " (" .. index .. ")" end`): Function to customize the buffer name format. Receives `prefix` (string) and `index` (number) as arguments and should return a string.
-- `position` (string, default: `bot`): Position to open the terminal (`:h opening-window`).
+- `position` (string, default: `bot`): Position to open the terminal in split mode (`:h opening-window`). Can be `bot`, `top`, `left`, `right`.
+- `display` (string, default: `split`): Display mode. `"split"` uses native Neovim splits; `"float"` opens a floating overlay window that won't resize other windows.
+- `float_config` (table): Configuration for float display mode. Only used when `display = "float"`.
+  - `relative` (string, default: `"editor"`): Position relative to. `"editor"`, `"cursor"`, or `"win"`.
+  - `width` (number|nil, default: `nil`): Width in columns. `0~1` = fraction of editor width, `>1` = absolute columns. `nil` = 80%.
+  - `height` (number|nil, default: `nil`): Height in rows. `0~1` = fraction, `>1` = absolute rows. `nil` = uses `size`.
+  - `row` (number|nil, default: `nil`): Row offset from anchor edge. `nil` = auto-center (no anchor) or `0` (with anchor).
+  - `col` (number|nil, default: `nil`): Column offset from anchor edge. `nil` = auto-center (no anchor) or `0` (with anchor).
+  - `border` (string, default: `"rounded"`): Border style: `"none"`, `"single"`, `"double"`, `"rounded"`, `"solid"`, `"shadow"`.
+  - `anchor` (string|nil, default: `nil`): Anchor corner: `"NW"`, `"NE"`, `"SW"`, `"SE"`. `nil` = centered.
+  - `style` (string, default: `"minimal"`): Window style.
 - `size` (number, default: `vim.o.lines / 2`): Size of the terminal window.
 - `startInserted` (boolean | fun():boolean, default: `true`): Start in insert mode when a terminal is opened.
 - `show_tabs` (boolean, default: `true`): Enable/Disable the tabs bar.
@@ -165,6 +191,17 @@ require('betterTerm').setup {
   return prefix .. " (" .. index .. ")"
  end,
  position = "bot",
+ display = "split",
+ float_config = {
+  relative = "editor",
+  width = nil,
+  height = nil,
+  row = nil,
+  col = nil,
+  border = "rounded",
+  anchor = nil,
+  style = "minimal",
+ },
  size = math.floor(vim.o.lines/ 2),
  startInserted = true,
  show_tabs = true,

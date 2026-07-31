@@ -42,12 +42,18 @@ The plugin can be configured using the `setup` function.
     {prefix}            (string) Prefix for terminal buffer names. The final
                         name will be `prefix (index)`.
                         Default: "Term"
-    {position}          (string) Position to open the terminal. Can be "bot",
-                        "top", "left", "right".
+    {position}          (string) Position to open the terminal in split mode.
+                        Can be "bot", "top", "left", "right".
                         Default: "bot"
+    {display}           (string) Display mode for the terminal window. Can be
+                        "split" (native Neovim split) or "float" (floating
+                        overlay window that does not resize other windows).
+                        Default: "split"
+    {float_config}      (FloatConfig) Configuration for float display mode.
+                        Only used when {display} is "float".
     {size}              (number) Size of the terminal window (height for
-                        horizontal split, width for vertical).
-                        Default: 18
+                        horizontal split or float window).
+                        Default: half of editor height
     {startInserted}     (boolean) Start in insert mode when a terminal is
                         opened.
                         Default: true
@@ -69,6 +75,45 @@ The plugin can be configured using the `setup` function.
                         Default: "+"
     {index_base}        (number) The starting index for terminals.
                         Default: 0
+
+*FloatConfig*
+  Fields for the {float_config} option:
+
+  Fields: ~
+    {relative}  (string) Window positioning relative to. Can be "editor",
+                "cursor", or "win". Default: "editor"
+    {width}     (number|nil) Width in columns. A value between 0 and 1 is
+                treated as a fraction of editor width. nil = 80% of editor.
+                Default: nil
+    {height}    (number|nil) Height in rows. A value between 0 and 1 is
+                treated as a fraction of editor height. nil = uses {size}.
+                Default: nil
+    {row}       (number|nil) Row position. nil = auto-center.
+                When {anchor} is set, defaults to 0.
+                Default: nil
+    {col}       (number|nil) Column position. nil = auto-center.
+                When {anchor} is set, defaults to 0.
+                Default: nil
+    {border}    (string) Border style: "none", "single", "double", "rounded",
+                "solid", "shadow". Default: "rounded"
+    {anchor}    (string|nil) Anchor corner: "NW", "NE", "SW", "SE".
+                When set, {row}/{col} are offsets from that anchor.
+                Default: nil
+    {style}     (string) Window style. Default: "minimal"
+
+  Usage example: >
+    require("betterTerm").setup({
+      display = "float",
+      float_config = {
+        width = 0.9,
+        height = 0.8,
+        border = "rounded",
+        anchor = "SE",
+        row = 1,
+        col = 1,
+      },
+    })
+  <
 
 ==============================================================================
 3. Usage                                                        *betterTerm-usage*
